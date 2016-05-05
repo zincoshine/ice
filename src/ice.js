@@ -43,6 +43,21 @@
         tag: 'span',
         alias: 'del',
         action: 'Deleted'
+      },
+	  boldType: {
+        tag: 'strong',
+        alias: 'bold',
+        action: 'Bolded'
+      },
+	  italicType: {
+        tag: 'i',
+        alias: 'itc',
+        action: 'italicized'
+      },
+	  underlineType: {
+        tag: 'u',
+        alias: 'uln',
+        action: 'Underlined'
       }
     },
 
@@ -144,12 +159,19 @@
       this.pluginsManager.fireDisabled(this.element);
       return this;
     },
+	
+	/*execCommand: function (cmd, ui, val){
+	 alert('fgf'+cmd);
+ 	},*/
+	/*execCommand.click(function(cmd, ui, val){
+		alert('fgf'+cmd);
+		},*/
 
     /**
      * Initializes the `env` object with pointers to key objects of the page.
      */
     initializeEnvironment: function () {
-      this.env || (this.env = {});
+      this.env || (this.env = {});	  
       this.env.element = this.element;
       this.env.document = this.element.ownerDocument;
       this.env.window = this.env.document.defaultView || this.env.document.parentWindow || window;
@@ -158,8 +180,12 @@
       // Hack for using custom tags in IE 8/7
       this.env.document.createElement(this.changeTypes.insertType.tag);
       this.env.document.createElement(this.changeTypes.deleteType.tag);
+	  this.env.document.createElement(this.changeTypes.boldType.tag);
+	  this.env.document.createElement(this.changeTypes.italicType.tag);
+	  this.env.document.createElement(this.changeTypes.underlineType.tag);
+	  //alert(JSON.stringify(this.changeTypes.boldType.tag));
     },
-
+	
     /**
      * Initializes the internal range object and sets focus to the editing element.
      */
@@ -191,6 +217,7 @@
       }
 
     },
+
  
     /*
      * Updates the list of changes to include all track tags found inside the element.
@@ -245,7 +272,7 @@
      * Set the user to be tracked. A user object has the following properties:
      * {`id`, `name`}
      */
-    setCurrentUser: function (user) {
+    setCurrentUser: function (user) {		
       this.currentUser = user;
     },
 
@@ -256,7 +283,7 @@
      * was fully handled.
      */
     handleEvent: function (e) {
-      if (!this.isTracking) return;
+      if (!this.isTracking) return;			
       if (e.type == 'mouseup') {
         var self = this;
         setTimeout(function () {
@@ -265,11 +292,11 @@
       } else if (e.type == 'mousedown') {
         return this.mouseDown(e);
       } else if (e.type == 'keypress') {
-        var needsToBubble = this.keyPress(e);
+        var needsToBubble = this.keyPress(e);			
         if (!needsToBubble) e.preventDefault();
         return needsToBubble;
       } else if (e.type == 'keydown') {
-        var needsToBubble = this.keyDown(e);
+        var needsToBubble = this.keyDown(e);		
         if (!needsToBubble) e.preventDefault();
         return needsToBubble;
       } else if (e.type == 'keyup') {
@@ -297,6 +324,352 @@
       });
       return node;
     },
+	
+	//*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************//
+	insertBold: function (node, range) {  	    
+    	var prevent = true;
+    	var browser = ice.dom.browser();
+
+      if (range) {
+        this.selection.addRange(range);
+      } else {
+        range = this.getCurrentRange();
+      }
+
+      var changeid = this.startBatchChange(this.changeTypes['boldType'].alias);	  
+      if (range.collapsed === false) {		  
+
+				  // Bookmark the range and get elements between.
+				  var bookmark = new ice.Bookmark(this.env, range),
+					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
+					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
+					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
+					betweenBlocks = new Array(); 
+					
+				  for (var i = 0; i < elements.length; i++) {
+					  
+					var elem = elements[i];
+					console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(elem))));
+					if (ice.dom.isBlockElement(elem)) {
+					  betweenBlocks.push(elem);
+					  if (!ice.dom.canContainTextElement(elem)) {
+						// Ignore containers that are not supposed to contain text. Check children instead.
+						for (var k = 0; k < elem.childNodes.length; k++) {
+						  elements.push(elem.childNodes[k]);
+						}
+						continue;
+					  }
+					}
+					
+					// Ignore empty space nodes
+					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
+			
+					if (!this._getVoidElement(elem)) {					 
+					  var parentBlock = ice.dom.getBlockParent(elem);
+					  this._addNodeBoldTracking(elem, false, true, true);
+					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
+						ice.dom.remove(parentBlock);
+					  }
+					}
+				  }
+			
+				  if (this.mergeBlocks && b1 !== b2) {
+					while (betweenBlocks.length)
+					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
+					ice.dom.removeBRFromChild(b2);
+					ice.dom.removeBRFromChild(b1);
+					ice.dom.mergeContainers(b2, b1);
+				  }
+			
+				  bookmark.selectBookmark();
+			//      range.collapse(false);
+			  range.collapse(true);    
+	
+      }
+	  
+      this.selection.addRange(range);
+      this.endBatchChange(changeid);
+      return prevent;
+    
+    },
+
+   //Add tracking CTRL+B
+	_addNodeBoldTracking: function (contentNode, range, moveLeft) {
+		// Webkit likes to insert empty text nodes next to elements. We bold them here.
+      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.previousSibling);
+      }
+      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.nextSibling);
+      }
+      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'boldType');
+      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'boldType');
+      var ctNode;
+
+      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {
+        ctNode = prevDelNode;
+        ctNode.appendChild(contentNode);
+        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+          var nextDelContents = ice.dom.extractContent(nextDelNode);
+          ice.dom.append(ctNode, nextDelContents);
+          nextDelNode.parentNode.removeChild(nextDelNode);
+        }
+      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+        ctNode = nextDelNode;
+        ctNode.insertBefore(contentNode, ctNode.firstChild);
+      } else {
+        ctNode = this.createIceNode('boldType');
+        contentNode.parentNode.insertBefore(ctNode, contentNode);
+        ctNode.appendChild(contentNode);
+      }
+
+      if (range) {
+        if (ice.dom.isStubElement(contentNode)) {
+          range.selectNode(contentNode);
+        } else {
+          range.selectNodeContents(contentNode);
+        }
+        if (moveLeft) {
+          range.collapse(true);
+        } else {
+          range.collapse();
+        }
+        contentNode.normalize();
+      }
+      return true;
+	},
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************
+
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************//
+	insertItalic: function (node, range) {  	    
+    	var prevent = true;
+    	var browser = ice.dom.browser();
+
+      if (range) {
+        this.selection.addRange(range);
+      } else {
+        range = this.getCurrentRange();
+      }
+
+      var changeid = this.startBatchChange(this.changeTypes['italicType'].alias);	  
+      if (range.collapsed === false) {		  
+
+				  // Bookmark the range and get elements between.
+				  var bookmark = new ice.Bookmark(this.env, range),
+					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
+					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
+					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
+					betweenBlocks = new Array(); 
+					
+				  for (var i = 0; i < elements.length; i++) {
+					  
+					var elem = elements[i];
+					console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(elem))));
+					if (ice.dom.isBlockElement(elem)) {
+					  betweenBlocks.push(elem);
+					  if (!ice.dom.canContainTextElement(elem)) {
+						// Ignore containers that are not supposed to contain text. Check children instead.
+						for (var k = 0; k < elem.childNodes.length; k++) {
+						  elements.push(elem.childNodes[k]);
+						}
+						continue;
+					  }
+					}
+					
+					// Ignore empty space nodes
+					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
+			
+					if (!this._getVoidElement(elem)) {					 
+					  var parentBlock = ice.dom.getBlockParent(elem);
+					  this._addNodeItalicTracking(elem, false, true, true);
+					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
+						ice.dom.remove(parentBlock);
+					  }
+					}
+				  }
+			
+				  if (this.mergeBlocks && b1 !== b2) {
+					while (betweenBlocks.length)
+					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
+					ice.dom.removeBRFromChild(b2);
+					ice.dom.removeBRFromChild(b1);
+					ice.dom.mergeContainers(b2, b1);
+				  }
+			
+				  bookmark.selectBookmark();
+			//      range.collapse(false);
+			  range.collapse(true);    
+	
+      }
+	  
+      this.selection.addRange(range);
+      this.endBatchChange(changeid);
+      return prevent;
+    
+    },
+
+   //Add tracking CTRL+B
+	_addNodeItalicTracking: function (contentNode, range, moveLeft) {
+		// Webkit likes to insert empty text nodes next to elements. We bold them here.
+      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.previousSibling);
+      }
+      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.nextSibling);
+      }
+      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'italicType');
+      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'italicType');
+      var ctNode;
+
+      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {
+        ctNode = prevDelNode;
+        ctNode.appendChild(contentNode);
+        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+          var nextDelContents = ice.dom.extractContent(nextDelNode);
+          ice.dom.append(ctNode, nextDelContents);
+          nextDelNode.parentNode.removeChild(nextDelNode);
+        }
+      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+        ctNode = nextDelNode;
+        ctNode.insertBefore(contentNode, ctNode.firstChild);
+      } else {
+        ctNode = this.createIceNode('italicType');
+        contentNode.parentNode.insertBefore(ctNode, contentNode);
+        ctNode.appendChild(contentNode);
+      }
+
+      if (range) {
+        if (ice.dom.isStubElement(contentNode)) {
+          range.selectNode(contentNode);
+        } else {
+          range.selectNodeContents(contentNode);
+        }
+        if (moveLeft) {
+          range.collapse(true);
+        } else {
+          range.collapse();
+        }
+        contentNode.normalize();
+      }
+      return true;
+	},
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************
+
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************//
+	insertUnderline: function (node, range) {  	    
+    	var prevent = true;
+    	var browser = ice.dom.browser();
+
+      if (range) {
+        this.selection.addRange(range);
+      } else {
+        range = this.getCurrentRange();
+      }
+
+      var changeid = this.startBatchChange(this.changeTypes['underlineType'].alias);	  
+      if (range.collapsed === false) {		  
+
+				  // Bookmark the range and get elements between.
+				  var bookmark = new ice.Bookmark(this.env, range),
+					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
+					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
+					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
+					betweenBlocks = new Array(); 
+					
+				  for (var i = 0; i < elements.length; i++) {
+					  
+					var elem = elements[i];
+					console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(elem))));
+					if (ice.dom.isBlockElement(elem)) {
+					  betweenBlocks.push(elem);
+					  if (!ice.dom.canContainTextElement(elem)) {
+						// Ignore containers that are not supposed to contain text. Check children instead.
+						for (var k = 0; k < elem.childNodes.length; k++) {
+						  elements.push(elem.childNodes[k]);
+						}
+						continue;
+					  }
+					}
+					
+					// Ignore empty space nodes
+					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
+			
+					if (!this._getVoidElement(elem)) {					 
+					  var parentBlock = ice.dom.getBlockParent(elem);
+					  this._addNodeUnderlineTracking(elem, false, true, true);
+					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
+						ice.dom.remove(parentBlock);
+					  }
+					}
+				  }
+			
+				  if (this.mergeBlocks && b1 !== b2) {
+					while (betweenBlocks.length)
+					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
+					ice.dom.removeBRFromChild(b2);
+					ice.dom.removeBRFromChild(b1);
+					ice.dom.mergeContainers(b2, b1);
+				  }
+			
+				  bookmark.selectBookmark();
+			//      range.collapse(false);
+			  range.collapse(true);    
+	
+      }
+	  
+      this.selection.addRange(range);
+      this.endBatchChange(changeid);
+      return prevent;
+    
+    },
+
+   //Add tracking CTRL+B
+	_addNodeUnderlineTracking: function (contentNode, range, moveLeft) {
+		// Webkit likes to insert empty text nodes next to elements. We bold them here.
+      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.previousSibling);
+      }
+      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.nextSibling);
+      }
+      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'underlineType');
+      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'underlineType');
+      var ctNode;
+
+      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {
+        ctNode = prevDelNode;
+        ctNode.appendChild(contentNode);
+        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+          var nextDelContents = ice.dom.extractContent(nextDelNode);
+          ice.dom.append(ctNode, nextDelContents);
+          nextDelNode.parentNode.removeChild(nextDelNode);
+        }
+      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+        ctNode = nextDelNode;
+        ctNode.insertBefore(contentNode, ctNode.firstChild);
+      } else {
+        ctNode = this.createIceNode('underlineType');
+        contentNode.parentNode.insertBefore(ctNode, contentNode);
+        ctNode.appendChild(contentNode);
+      }
+
+      if (range) {
+        if (ice.dom.isStubElement(contentNode)) {
+          range.selectNode(contentNode);
+        } else {
+          range.selectNodeContents(contentNode);
+        }
+        if (moveLeft) {
+          range.collapse(true);
+        } else {
+          range.collapse();
+        }
+        contentNode.normalize();
+      }
+      return true;
+	},
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************
+
 
     /**
      * Inserts the given string/node into the given range with tracking tags, collapsing (deleting)
@@ -316,7 +689,7 @@
 
       // If we have any nodes selected, then we want to delete them before inserting the new text.
       if (!range.collapsed) {
-        this.deleteContents();
+        //this.deleteContents();
         // Update the range
         range = this.getCurrentRange();
         if (range.startContainer === range.endContainer && this.element === range.startContainer) {
@@ -458,7 +831,7 @@
 
         // Calibrate Cursor after deleting
         if(!this.visible(range.endContainer)){
-          if (ice.dom.is(range.endContainer.parentNode,  '.' + this._getIceNodeClass('insertType') + ', .' + this._getIceNodeClass('deleteType'))) {
+          if (ice.dom.is(range.endContainer.parentNode,  '.' + this._getIceNodeClass('insertType') + ', .' + this._getIceNodeClass('deleteType')+ ', .' + this._getIceNodeClass('boldType'))) {
 //            range.setStart(range.endContainer.parentNode.nextSibling, 0);
             range.setStartAfter(range.endContainer.parentNode);
             range.collapse(true);
@@ -592,11 +965,20 @@
     rejectAll: function () {
       var insSel = '.' + this._getIceNodeClass('insertType');
       var delSel = '.' + this._getIceNodeClass('deleteType');
+	  var boldSel = '.' + this._getIceNodeClass('boldType');
+	  var italicSel = '.' + this._getIceNodeClass('italicType');
+	  var underlineSel = '.' + this._getIceNodeClass('underlineType');
 
       ice.dom.remove(ice.dom.find(this.element, insSel));
       ice.dom.each(ice.dom.find(this.element, delSel), function (i, el) {
         ice.dom.replaceWith(el, ice.dom.contents(el));
       });
+	  ice.dom.remove(ice.dom.find(this.element, boldSel));
+	  ice.dom.remove(ice.dom.find(this.element, italicSel));
+	  ice.dom.remove(ice.dom.find(this.element, underlineSel));
+	 /* ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
+        ice.dom.replaceWith(el, ice.dom.contents(el));
+      });*/
     },
 
     /**
@@ -623,7 +1005,7 @@
      * Handles accepting or rejecting tracking changes
      */
     acceptRejectChange: function (node, isAccept) {
-      var delSel, insSel, selector, removeSel, replaceSel, trackNode, changes, dom = ice.dom;
+      var delSel, insSel, boldSel, italicSel, underlineSel, selector, removeSel, replaceSel, trackNode, changes, dom = ice.dom;
 
       if (!node) {
         var range = this.getCurrentRange();
@@ -633,7 +1015,11 @@
 
       delSel = removeSel = '.' + this._getIceNodeClass('deleteType');
       insSel = replaceSel = '.' + this._getIceNodeClass('insertType');
-      selector = delSel + ',' + insSel;
+	  boldSel = replaceSel = '.' + this._getIceNodeClass('boldType');
+	  italicSel = replaceSel = '.' + this._getIceNodeClass('italicType');
+	  underlineSel = replaceSel = '.' + this._getIceNodeClass('underlineType');
+	  
+      selector = delSel + ',' + insSel + ',' + boldSel+ ',' + italicSel+ ',' + underlineSel;
       trackNode = dom.getNode(node, selector);
       // Some changes are done in batches so there may be other tracking
       // nodes with the same `changeIdAttribute` batch number.
@@ -642,6 +1028,7 @@
       if (!isAccept) {
         removeSel = insSel;
         replaceSel = delSel;
+		replaceSel = boldSel;
       }
 
       if (ice.dom.is(trackNode, replaceSel)) {
@@ -1330,11 +1717,10 @@
     },
 
     // Marks text and other nodes for deletion
-    _addNodeTracking: function (contentNode, range, moveLeft) {
-
-      var contentAddNode = this.getIceNode(contentNode, 'insertType');
-
+    _addNodeTracking: function (contentNode, range, moveLeft) {		
+		var contentAddNode = this.getIceNode(contentNode, 'insertType');	  
       if (contentAddNode && this._currentUserIceNode(contentAddNode)) {
+		  alert('insert');
         if (range && moveLeft) {
           range.selectNode(contentNode);
         }
@@ -1353,8 +1739,9 @@
         }
 
         return true;
-
+		
       } else if (range && this.getIceNode(contentNode, 'deleteType')) {
+		  alert('delete');
         // It if the contentNode a text node, unite it with text nodes before and after it.
         contentNode.normalize();
 
@@ -1399,7 +1786,8 @@
           return true;
         }
 
-      }
+      }	  
+	  
       // Webkit likes to insert empty text nodes next to elements. We remove them here.
       if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
         contentNode.parentNode.removeChild(contentNode.previousSibling);
@@ -1443,9 +1831,8 @@
       }
       return true;
 
-    },
-
-
+    },	
+	
     /**
      * Handles arrow, delete key events, and others.
      *
@@ -1660,7 +2047,41 @@
             this.selection.addRange(range);
           } //end if
           break;
-
+		  //*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************//
+			case 66:
+			// Check for CTRL + B (bold a text)
+			if(e.ctrlKey === true || e.metaKey === true) {				
+				preventDefault = true;
+					var range = this.getCurrentRange();				
+			this._moveRangeToValidTrackingPos(range, range.startContainer);
+				  //this.insert('\u00A0' , range);
+				  this.insertBold('\u00A0' , range);
+			}
+			break;		 
+		  
+		  //*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************//
+			case 73:
+			// Check for CTRL + I (Italic a text)
+			if(e.ctrlKey === true || e.metaKey === true) {				
+				preventDefault = true;
+					var range = this.getCurrentRange();				
+			this._moveRangeToValidTrackingPos(range, range.startContainer);
+				  //this.insert('\u00A0' , range);
+				  this.insertItalic('\u00A0' , range);
+			}
+			break;		  
+		  
+		  //*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************//
+			case 85:
+			// Check for CTRL + U (bold a text)
+			if(e.ctrlKey === true || e.metaKey === true) {				
+				preventDefault = true;
+					var range = this.getCurrentRange();				
+			this._moveRangeToValidTrackingPos(range, range.startContainer);
+				  //this.insert('\u00A0' , range);
+				  this.insertUnderline('\u00A0' , range);
+			}
+		  //*************INNOBLITZ CHANGES FOR TRACKING CTRL+B, CTRL+I, CTRL+U CHANGE******************************
         default:
           // Not a special key.
           break;
