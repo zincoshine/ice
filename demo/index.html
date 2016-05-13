@@ -50,9 +50,9 @@
 			<div>
 				<div class="control">
 					<strong>Style:</strong>
-					<button onclick="document.execCommand('bold', null, false);"><strong>B</strong></button>
-					<button onclick="document.execCommand('italic', null, false);"><em>i</em></button>
-					<button onclick="document.execCommand('underline', null, false);"><u>u</u></button>
+					<button onclick="boldBtn('bold', null, false);"><strong>B</strong></button>
+					<button onclick="boldBtn('italic', null, false);"><em>i</em></button>
+					<button onclick="boldBtn('underline', null, false);"><u>u</u></button>
 				</div>
 				<div class="control">
 					<strong>Indent:</strong>
@@ -127,6 +127,19 @@
 			var name = $(el).find(':selected').data('username');
 			var id = $(el).find(':selected').data('userid');
 			tracker.setCurrentUser({id: id, name: name});
+		}
+		
+		function boldBtn(u,r,x,m){			
+			if(u=='bold'){
+				var range = tracker.getCurrentRange();
+				tracker.insertBold('\u00A0' , range);
+			}else if(u=='italic'){
+				var range = tracker.getCurrentRange();
+				tracker.insertItalic('\u00A0' , range);
+			}else if(u=='underline'){
+				var range = tracker.getCurrentRange();
+				tracker.insertUnderline('\u00A0' , range);
+			}
 		}
 		
 		function toggleDel(el) {

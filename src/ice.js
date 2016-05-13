@@ -1,2 +1,2147 @@
-(function(){var e,t,i=this;e={changeIdAttribute:"data-cid",userIdAttribute:"data-userid",userNameAttribute:"data-username",timeAttribute:"data-time",attrValuePrefix:"",blockEl:"p",blockEls:["p","ol","ul","li","h1","h2","h3","h4","h5","h6","blockquote"],stylePrefix:"cts",currentUser:{id:null,name:null},changeTypes:{insertType:{tag:"span",alias:"ins",action:"Inserted"},deleteType:{tag:"span",alias:"del",action:"Deleted"},boldType:{tag:"b",alias:"bold",action:"Bolded"},italicType:{tag:"i",alias:"itc",action:"italicized"},underlineType:{tag:"u",alias:"uln",action:"Underlined"}},handleEvents:!1,contentEditable:!0,isTracking:!0,noTrack:".ice-no-track",avoid:".ice-avoid",mergeBlocks:!0},t=function(t){if(this._changes={},t||(t={}),!t.element)throw Error("`options.element` must be defined for ice construction.");ice.dom.extend(!0,this,e,t),this.pluginsManager=new ice.IcePluginManager(this),t.plugins&&this.pluginsManager.usePlugins("ice-init",t.plugins)},t.prototype={_userStyles:{},_styles:{},_uniqueStyleIndex:0,_browserType:null,_batchChangeid:null,_uniqueIDIndex:1,_delBookmark:"tempdel",isPlaceHoldingDeletes:!1,startTracking:function(){if(this.element.setAttribute("contentEditable",this.contentEditable),this.handleEvents){var e=this;ice.dom.bind(e.element,"keyup.ice keydown.ice keypress.ice mousedown.ice mouseup.ice",function(t){return e.handleEvent(t)})}return this.initializeEnvironment(),this.initializeEditor(),this.findTrackTags(),this.initializeRange(),this.pluginsManager.fireEnabled(this.element),this},stopTracking:function(){if(this.element.setAttribute("contentEditable",!this.contentEditable),this.handleEvents){var e=this;ice.dom.unbind(e.element,"keyup.ice keydown.ice keypress.ice mousedown.ice mouseup.ice")}return this.pluginsManager.fireDisabled(this.element),this},initializeEnvironment:function(){this.env||(this.env={}),this.env.element=this.element,this.env.document=this.element.ownerDocument,this.env.window=this.env.document.defaultView||this.env.document.parentWindow||window,this.env.frame=this.env.window.frameElement,this.env.selection=this.selection=new ice.Selection(this.env),this.env.document.createElement(this.changeTypes.insertType.tag),this.env.document.createElement(this.changeTypes.deleteType.tag),this.env.document.createElement(this.changeTypes.boldType.tag),this.env.document.createElement(this.changeTypes.italicType.tag),this.env.document.createElement(this.changeTypes.underlineType.tag)},initializeRange:function(){var e=this.selection.createRange();e.setStart(ice.dom.find(this.element,this.blockEls.join(", "))[0],0),e.collapse(!0),this.selection.addRange(e),this.env.frame?this.env.frame.contentWindow.focus():this.element.focus()},initializeEditor:function(){var e=this.env.document.createElement("div");this.element.childNodes.length?(e.innerHTML=this.element.innerHTML,ice.dom.removeWhitespace(e),""===e.innerHTML&&e.appendChild(ice.dom.create("<"+this.blockEl+" ><br/></"+this.blockEl+">"))):e.appendChild(ice.dom.create("<"+this.blockEl+" ><br/></"+this.blockEl+">")),this.element.innerHTML!=e.innerHTML&&(this.element.innerHTML=e.innerHTML)},findTrackTags:function(){var e=this,t=[];for(var i in this.changeTypes)t.push(this._getIceNodeClass(i));ice.dom.each(ice.dom.find(this.element,"."+t.join(", .")),function(i,n){for(var o=0,r="",s=n.className.split(" "),i=0;i<s.length;i++){var a=new RegExp(e.stylePrefix+"-(\\d+)").exec(s[i]);a&&(o=a[1]);var d=new RegExp("("+t.join("|")+")").exec(s[i]);d&&(r=e._getChangeTypeFromAlias(d[1]))}var l=ice.dom.attr(n,e.userIdAttribute);e.setUserStyle(l,Number(o));var c=ice.dom.attr(n,e.changeIdAttribute);e._changes[c]={type:r,userid:l,username:ice.dom.attr(n,e.userNameAttribute),time:ice.dom.attr(n,e.timeAttribute)}})},enableChangeTracking:function(){this.isTracking=!0,this.pluginsManager.fireEnabled(this.element)},disableChangeTracking:function(){this.isTracking=!1,this.pluginsManager.fireDisabled(this.element)},setCurrentUser:function(e){this.currentUser=e},handleEvent:function(e){if(this.isTracking)if("mouseup"==e.type){var t=this;setTimeout(function(){t.mouseUp(e)},200)}else{if("mousedown"==e.type)return this.mouseDown(e);if("keypress"==e.type){var i=this.keyPress(e);return i||e.preventDefault(),i}if("keydown"==e.type){var i=this.keyDown(e);return i||e.preventDefault(),i}"keyup"==e.type&&this.pluginsManager.fireCaretUpdated()}},visible:function(e){e.nodeType===ice.dom.TEXT_NODE&&(e=e.parentNode);var t=e.getBoundingClientRect();return t.top>0&&t.left>0},createIceNode:function(e,t){var i=this.env.document.createElement(this.changeTypes[e].tag);return ice.dom.addClass(i,this._getIceNodeClass(e)),i.appendChild(t?t:this.env.document.createTextNode("")),this.addChange(this.changeTypes[e].alias,[i]),this.pluginsManager.fireNodeCreated(i,{action:this.changeTypes[e].action}),i},insertBold:function(e,t){var i=!0;ice.dom.browser();t?this.selection.addRange(t):t=this.getCurrentRange();var n=this.startBatchChange(this.changeTypes.boldType.alias);if(t.collapsed===!1){for(var o=new ice.Bookmark(this.env,t),r=ice.dom.getElementsBetween(o.start,o.end),s=ice.dom.parents(t.startContainer,this.blockEls.join(", "))[0],a=ice.dom.parents(t.endContainer,this.blockEls.join(", "))[0],d=new Array,l=0;l<r.length;l++){var c=r[l];if(!ice.dom.isBlockElement(c)||(d.push(c),ice.dom.canContainTextElement(c))){if((c.nodeType!==ice.dom.TEXT_NODE||0!==ice.dom.getNodeTextContent(c).length)&&!this._getVoidElement(c)){var h=ice.dom.getBlockParent(c);this._addNodeBoldTracking(c,t,!0,!0),ice.dom.hasNoTextOrStubContent(h)&&ice.dom.remove(h)}}else for(var m=0;m<c.childNodes.length;m++)r.push(c.childNodes[m])}if(this.mergeBlocks&&s!==a){for(;d.length;)ice.dom.mergeContainers(d.shift(),s);ice.dom.removeBRFromChild(a),ice.dom.removeBRFromChild(s),ice.dom.mergeContainers(a,s)}o.selectBookmark(),t.collapse(!0)}return this.selection.addRange(t),this.endBatchChange(n),i},_addNodeBoldTracking:function(e,t,i){e.previousSibling&&e.previousSibling.nodeType===ice.dom.TEXT_NODE&&0===e.previousSibling.length&&e.parentNode.removeChild(e.previousSibling),e.nextSibling&&e.nextSibling.nodeType===ice.dom.TEXT_NODE&&0===e.nextSibling.length&&e.parentNode.removeChild(e.nextSibling);var n,o=this.getIceNode(e.previousSibling,"boldType"),r=this.getIceNode(e.nextSibling,"boldType");if(o&&this._currentUserIceNode(o)){if(n=o,n.appendChild(e),r&&this._currentUserIceNode(r)){var s=ice.dom.extractContent(r);ice.dom.append(n,s),r.parentNode.removeChild(r)}}else r&&this._currentUserIceNode(r)?(n=r,n.insertBefore(e,n.firstChild)):(n=this.createIceNode("boldType"),e.parentNode.insertBefore(n,e),n.appendChild(e));return t&&(ice.dom.isStubElement(e)?t.selectNode(e):t.selectNodeContents(e),i?t.collapse(!0):t.collapse(),e.normalize()),!0},insertItalic:function(e,t){var i=!0;ice.dom.browser();t?this.selection.addRange(t):t=this.getCurrentRange();var n=this.startBatchChange(this.changeTypes.italicType.alias);if(t.collapsed===!1){for(var o=new ice.Bookmark(this.env,t),r=ice.dom.getElementsBetween(o.start,o.end),s=ice.dom.parents(t.startContainer,this.blockEls.join(", "))[0],a=ice.dom.parents(t.endContainer,this.blockEls.join(", "))[0],d=new Array,l=0;l<r.length;l++){var c=r[l];if(console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(c)))),!ice.dom.isBlockElement(c)||(d.push(c),ice.dom.canContainTextElement(c))){if((c.nodeType!==ice.dom.TEXT_NODE||0!==ice.dom.getNodeTextContent(c).length)&&!this._getVoidElement(c)){var h=ice.dom.getBlockParent(c);this._addNodeItalicTracking(c,!1,!0,!0),ice.dom.hasNoTextOrStubContent(h)&&ice.dom.remove(h)}}else for(var m=0;m<c.childNodes.length;m++)r.push(c.childNodes[m])}if(this.mergeBlocks&&s!==a){for(;d.length;)ice.dom.mergeContainers(d.shift(),s);ice.dom.removeBRFromChild(a),ice.dom.removeBRFromChild(s),ice.dom.mergeContainers(a,s)}o.selectBookmark(),t.collapse(!0)}return this.selection.addRange(t),this.endBatchChange(n),i},_addNodeItalicTracking:function(e,t,i){e.previousSibling&&e.previousSibling.nodeType===ice.dom.TEXT_NODE&&0===e.previousSibling.length&&e.parentNode.removeChild(e.previousSibling),e.nextSibling&&e.nextSibling.nodeType===ice.dom.TEXT_NODE&&0===e.nextSibling.length&&e.parentNode.removeChild(e.nextSibling);var n,o=this.getIceNode(e.previousSibling,"italicType"),r=this.getIceNode(e.nextSibling,"italicType");if(o&&this._currentUserIceNode(o)){if(n=o,n.appendChild(e),r&&this._currentUserIceNode(r)){var s=ice.dom.extractContent(r);ice.dom.append(n,s),r.parentNode.removeChild(r)}}else r&&this._currentUserIceNode(r)?(n=r,n.insertBefore(e,n.firstChild)):(n=this.createIceNode("italicType"),e.parentNode.insertBefore(n,e),n.appendChild(e));return t&&(ice.dom.isStubElement(e)?t.selectNode(e):t.selectNodeContents(e),i?t.collapse(!0):t.collapse(),e.normalize()),!0},insertUnderline:function(e,t){var i=!0;ice.dom.browser();t?this.selection.addRange(t):t=this.getCurrentRange();var n=this.startBatchChange(this.changeTypes.underlineType.alias);if(t.collapsed===!1){for(var o=new ice.Bookmark(this.env,t),r=ice.dom.getElementsBetween(o.start,o.end),s=ice.dom.parents(t.startContainer,this.blockEls.join(", "))[0],a=ice.dom.parents(t.endContainer,this.blockEls.join(", "))[0],d=new Array,l=0;l<r.length;l++){var c=r[l];if(console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(c)))),!ice.dom.isBlockElement(c)||(d.push(c),ice.dom.canContainTextElement(c))){if((c.nodeType!==ice.dom.TEXT_NODE||0!==ice.dom.getNodeTextContent(c).length)&&!this._getVoidElement(c)){var h=ice.dom.getBlockParent(c);this._addNodeUnderlineTracking(c,!1,!0,!0),ice.dom.hasNoTextOrStubContent(h)&&ice.dom.remove(h)}}else for(var m=0;m<c.childNodes.length;m++)r.push(c.childNodes[m])}if(this.mergeBlocks&&s!==a){for(;d.length;)ice.dom.mergeContainers(d.shift(),s);ice.dom.removeBRFromChild(a),ice.dom.removeBRFromChild(s),ice.dom.mergeContainers(a,s)}o.selectBookmark(),t.collapse(!0)}return this.selection.addRange(t),this.endBatchChange(n),i},_addNodeUnderlineTracking:function(e,t,i){e.previousSibling&&e.previousSibling.nodeType===ice.dom.TEXT_NODE&&0===e.previousSibling.length&&e.parentNode.removeChild(e.previousSibling),e.nextSibling&&e.nextSibling.nodeType===ice.dom.TEXT_NODE&&0===e.nextSibling.length&&e.parentNode.removeChild(e.nextSibling);var n,o=this.getIceNode(e.previousSibling,"underlineType"),r=this.getIceNode(e.nextSibling,"underlineType");if(o&&this._currentUserIceNode(o)){if(n=o,n.appendChild(e),r&&this._currentUserIceNode(r)){var s=ice.dom.extractContent(r);ice.dom.append(n,s),r.parentNode.removeChild(r)}}else r&&this._currentUserIceNode(r)?(n=r,n.insertBefore(e,n.firstChild)):(n=this.createIceNode("underlineType"),e.parentNode.insertBefore(n,e),n.appendChild(e));return t&&(ice.dom.isStubElement(e)?t.selectNode(e):t.selectNodeContents(e),i?t.collapse(!0):t.collapse(),e.normalize()),!0},insert:function(e,t){var i=!e;if(e||(e="\ufeff"),t?this.selection.addRange(t):t=this.getCurrentRange(),"string"==typeof e&&(e=document.createTextNode(e)),!t.collapsed&&(t=this.getCurrentRange(),t.startContainer===t.endContainer&&this.element===t.startContainer)){ice.dom.empty(this.element);var n=t.getLastSelectableChild(this.element);t.setStartAfter(n),t.collapse(!0)}this._moveRangeToValidTrackingPos(t);var o=this.startBatchChange();return this._insertNode(e,t,i),this.pluginsManager.fireNodeInserted(e,t),this.endBatchChange(o),i},placeholdDeletes:function(){var e=this;this.isPlaceholdingDeletes&&this.revertDeletePlaceholders(),this.isPlaceholdingDeletes=!0,this._deletes=[];var t="."+this._getIceNodeClass("deleteType");return ice.dom.each(ice.dom.find(this.element,t),function(t,i){e._deletes.push(ice.dom.cloneNode(i)),ice.dom.replaceWith(i,"<"+e._delBookmark+' data-allocation="'+(e._deletes.length-1)+'"/>')}),!0},revertDeletePlaceholders:function(){var e=this;return this.isPlaceholdingDeletes?(ice.dom.each(this._deletes,function(t,i){ice.dom.find(e.element,e._delBookmark+"[data-allocation="+t+"]").replaceWith(i)}),this.isPlaceholdingDeletes=!1,!0):!1},deleteContents:function(e,t){var i=!0,n=ice.dom.browser();t?this.selection.addRange(t):t=this.getCurrentRange();var o=this.startBatchChange(this.changeTypes.deleteType.alias);if(t.collapsed===!1)this._currentUserIceNode(t.startContainer.parentNode)?this._deleteSelection(t):(this._deleteSelection(t),"mozilla"===n.type?(t.startContainer.parentNode.previousSibling?(t.setEnd(t.startContainer.parentNode.previousSibling,0),t.moveEnd(ice.dom.CHARACTER_UNIT,ice.dom.getNodeCharacterLength(t.endContainer))):t.setEndAfter(t.startContainer.parentNode),t.collapse(!1)):this.visible(t.endContainer)||(t.setEnd(t.endContainer,t.endOffset-1),t.collapse(!1)));else if(e)if("mozilla"===n.type)i=this._deleteRight(t),this.visible(t.endContainer)||(t.endContainer.parentNode.nextSibling?t.setEndBefore(t.endContainer.parentNode.nextSibling):t.setEndAfter(t.endContainer),t.collapse(!1));else{if(t.endOffset===ice.dom.getNodeCharacterLength(t.endContainer)){var r=t.startContainer.nextSibling;if(ice.dom.is(r,"."+this._getIceNodeClass("deleteType")))for(;r;){if(!ice.dom.is(r,"."+this._getIceNodeClass("deleteType"))){t.setStart(r,0),t.collapse(!0);break}r=r.nextSibling}}i=this._deleteRight(t),this.visible(t.endContainer)||ice.dom.is(t.endContainer.parentNode,"."+this._getIceNodeClass("insertType")+", ."+this._getIceNodeClass("deleteType"))&&(t.setStartAfter(t.endContainer.parentNode),t.collapse(!0))}else if("mozilla"===n.type)i=this._deleteLeft(t),this.visible(t.startContainer)||(t.startContainer.parentNode.previousSibling?t.setEnd(t.startContainer.parentNode.previousSibling,0):t.setEnd(t.startContainer.parentNode,0),t.moveEnd(ice.dom.CHARACTER_UNIT,ice.dom.getNodeCharacterLength(t.endContainer)),t.collapse(!1));else{if(!this.visible(t.startContainer)&&t.endOffset===ice.dom.getNodeCharacterLength(t.endContainer)){var s=t.startContainer.previousSibling;if(ice.dom.is(s,"."+this._getIceNodeClass("deleteType")))for(;s;){if(!ice.dom.is(s,"."+this._getIceNodeClass("deleteType"))){t.setEndBefore(s.nextSibling,0),t.collapse(!1);break}s=s.prevSibling}}i=this._deleteLeft(t)}return this.selection.addRange(t),this.endBatchChange(o),i},getChanges:function(){return this._changes},getChangeUserids:function(){var e=[],t=Object.keys(this._changes);for(var i in t)e.push(this._changes[t[i]].userid);return e.sort().filter(function(e,t,i){return t==i.indexOf(e)?1:0})},getElementContent:function(){return this.element.innerHTML},getCleanContent:function(e,t,i){var n="",o=this;ice.dom.each(this.changeTypes,function(e,t){"deleteType"!=e&&(t>0&&(n+=","),n+="."+o._getIceNodeClass(e))}),e=e?"string"==typeof e?ice.dom.create("<div>"+e+"</div>"):ice.dom.cloneNode(e,!1)[0]:ice.dom.cloneNode(this.element,!1)[0],e=i?i.call(this,e):e;var r=ice.dom.find(e,n);ice.dom.each(r,function(e,t){ice.dom.replaceWith(this,ice.dom.contents(this))});var s=ice.dom.find(e,"."+this._getIceNodeClass("deleteType"));return ice.dom.remove(s),e=t?t.call(this,e):e,e.innerHTML},acceptAll:function(){this.element.innerHTML=this.getCleanContent()},rejectAll:function(){var e="."+this._getIceNodeClass("insertType"),t="."+this._getIceNodeClass("deleteType"),i="."+this._getIceNodeClass("boldType"),n="."+this._getIceNodeClass("italicType"),o="."+this._getIceNodeClass("underlineType");ice.dom.remove(ice.dom.find(this.element,e)),ice.dom.each(ice.dom.find(this.element,t),function(e,t){ice.dom.replaceWith(t,ice.dom.contents(t))}),ice.dom.each(ice.dom.find(this.element,i),function(e,t){ice.dom.replaceWith(t,ice.dom.contents(t))}),ice.dom.remove(ice.dom.find(this.element,n)),ice.dom.remove(ice.dom.find(this.element,o))},acceptChange:function(e){this.acceptRejectChange(e,!0)},rejectChange:function(e){this.acceptRejectChange(e,!1)},acceptRejectChange:function(e,t){var i,n,o,r,s,a,d,l,c,h,m=ice.dom;if(!e){var g=this.getCurrentRange();if(!g.collapsed)return;e=g.startContainer}i=d="."+this._getIceNodeClass("deleteType"),n=l="."+this._getIceNodeClass("insertType"),o=l="."+this._getIceNodeClass("boldType"),r=l="."+this._getIceNodeClass("italicType"),s=l="."+this._getIceNodeClass("underlineType"),a=i+","+n+","+o+","+r+","+s,c=m.getNode(e,a),h=m.find(this.element,"["+this.changeIdAttribute+"="+m.attr(c,this.changeIdAttribute)+"]"),t||(d=n,l=i,l=o),ice.dom.is(c,l)?m.each(h,function(e,t){m.replaceWith(t,ice.dom.contents(t))}):m.is(c,d)&&m.remove(h)},isInsideChange:function(e){var t="."+this._getIceNodeClass("insertType")+", ."+this._getIceNodeClass("deleteType");if(!e){if(range=this.getCurrentRange(),!range.collapsed)return!1;e=range.startContainer}return!!ice.dom.getNode(e,t)},addChangeType:function(e,t,i,n){var o={tag:t,alias:i};n&&(o.action=n),this.changeTypes[e]=o},getIceNode:function(e,t){var i="."+this._getIceNodeClass(t);return ice.dom.getNode(e,i)},_moveRangeToValidTrackingPos:function(e){for(var t=!1,i=this._getVoidElement(e.endContainer);i;){try{e.moveEnd(ice.dom.CHARACTER_UNIT,1),e.moveEnd(ice.dom.CHARACTER_UNIT,-1)}catch(n){t=!0}if(t||ice.dom.onBlockBoundary(e.endContainer,e.startContainer,this.blockEls)){e.setStartAfter(i),e.collapse(!0);break}i=this._getVoidElement(e.endContainer),i?(e.setEnd(e.endContainer,0),e.moveEnd(ice.dom.CHARACTER_UNIT,ice.dom.getNodeCharacterLength(e.endContainer)),e.collapse()):(e.setStart(e.endContainer,0),e.collapse(!0))}},_getNoTrackElement:function(e){var t=this._getNoTrackSelector(),i=ice.dom.is(e,t)?e:ice.dom.parents(e,t)[0]||null;return i},_getNoTrackSelector:function(){return this.noTrack},_getVoidElement:function(e){var t=this._getVoidElSelector();return ice.dom.is(e,t)?e:ice.dom.parents(e,t)[0]||null},_getVoidElSelector:function(){return"."+this._getIceNodeClass("deleteType")+","+this.avoid},_currentUserIceNode:function(e){return ice.dom.attr(e,this.userIdAttribute)==this.currentUser.id},_getChangeTypeFromAlias:function(e){var t,i=null;for(t in this.changeTypes)this.changeTypes.hasOwnProperty(t)&&this.changeTypes[t].alias==e&&(i=t);return i},_getIceNodeClass:function(e){return this.attrValuePrefix+this.changeTypes[e].alias},getUserStyle:function(e){var t=null;return t=this._userStyles[e]?this._userStyles[e]:this.setUserStyle(e,this.getNewStyleId())},setUserStyle:function(e,t){var i=this.stylePrefix+"-"+t;return this._styles[t]||(this._styles[t]=!0),this._userStyles[e]=i},getNewStyleId:function(){var e=++this._uniqueStyleIndex;return this._styles[e]?this.getNewStyleId():(this._styles[e]=!0,e)},addChange:function(e,t){var i=this._batchChangeid||this.getNewChangeId();this._changes[i]||(this._changes[i]={type:this._getChangeTypeFromAlias(e),time:(new Date).getTime(),userid:this.currentUser.id,username:this.currentUser.name});var n=this;return ice.dom.foreach(t,function(e){n.addNodeToChange(i,t[e])}),i},addNodeToChange:function(e,t){null!==this._batchChangeid&&(e=this._batchChangeid);var i=this.getChange(e);t.getAttribute(this.changeIdAttribute)||t.setAttribute(this.changeIdAttribute,e),t.getAttribute(this.userIdAttribute)||t.setAttribute(this.userIdAttribute,i.userid),t.getAttribute(this.userNameAttribute)||t.setAttribute(this.userNameAttribute,i.username),t.getAttribute(this.timeAttribute)||t.setAttribute(this.timeAttribute,i.time),ice.dom.hasClass(t,this._getIceNodeClass(i.type))||ice.dom.addClass(t,this._getIceNodeClass(i.type));var n=this.getUserStyle(i.userid);ice.dom.hasClass(t,n)||ice.dom.addClass(t,n)},getChange:function(e){var t=null;return this._changes[e]&&(t=this._changes[e]),t},getNewChangeId:function(){var e=++this._uniqueIDIndex;return this._changes[e]&&(e=this.getNewChangeId()),e},startBatchChange:function(){return this._batchChangeid=this.getNewChangeId(),this._batchChangeid},endBatchChange:function(e){e===this._batchChangeid&&(this._batchChangeid=null)},getCurrentRange:function(){return this.selection.getRangeAt(0)},_insertNode:function(e,t,i){ice.dom.isBlockElement(t.startContainer)||ice.dom.canContainTextElement(ice.dom.getBlockParent(t.startContainer,this.element))||!t.startContainer.previousSibling||t.setStart(t.startContainer.previousSibling,0);var n=(t.startContainer,ice.dom.isBlockElement(t.startContainer)&&t.startContainer||ice.dom.getBlockParent(t.startContainer,this.element)||null);if(n===this.element){var o=document.createElement(this.blockEl);return n.appendChild(o),t.setStart(o,0),t.collapse(),this._insertNode(e,t,i)}ice.dom.hasNoTextOrStubContent(n)&&(ice.dom.empty(n),ice.dom.append(n,"<br>"),t.setStart(n,0));var r=this.getIceNode(t.startContainer,"insertType"),s=this._currentUserIceNode(r);i&&s||(s||(e=this.createIceNode("insertType",e)),t.insertNode(e),t.setEnd(e,1),i?t.setStart(e,0):t.collapse(),this.selection.addRange(t))},_handleVoidEl:function(e,t){var i=this._getVoidElement(e);return i&&!this.getIceNode(i,"deleteType")?(t.collapse(!0),!0):!1},_deleteSelection:function(e){for(var t=new ice.Bookmark(this.env,e),i=ice.dom.getElementsBetween(t.start,t.end),n=ice.dom.parents(e.startContainer,this.blockEls.join(", "))[0],o=ice.dom.parents(e.endContainer,this.blockEls.join(", "))[0],r=new Array,s=0;s<i.length;s++){var a=i[s];if(!ice.dom.isBlockElement(a)||(r.push(a),ice.dom.canContainTextElement(a))){if((a.nodeType!==ice.dom.TEXT_NODE||0!==ice.dom.getNodeTextContent(a).length)&&!this._getVoidElement(a)){if(a.nodeType!==ice.dom.TEXT_NODE){if(ice.dom.BREAK_ELEMENT==ice.dom.getTagName(a))continue;if(ice.dom.isStubElement(a)){this._addNodeTracking(a,!1,!0);continue}for(ice.dom.hasNoTextOrStubContent(a)&&ice.dom.remove(a),j=0;j<a.childNodes.length;j++){var d=a.childNodes[j];i.push(d)}continue}var l=ice.dom.getBlockParent(a);this._addNodeTracking(a,!1,!0,!0),ice.dom.hasNoTextOrStubContent(l)&&ice.dom.remove(l)}}else for(var c=0;c<a.childNodes.length;c++)i.push(a.childNodes[c])}if(this.mergeBlocks&&n!==o){for(;r.length;)ice.dom.mergeContainers(r.shift(),n);ice.dom.removeBRFromChild(o),ice.dom.removeBRFromChild(n),ice.dom.mergeContainers(o,n)}t.selectBookmark(),e.collapse(!0)},_deleteRight:function(e){var t,i,n=ice.dom.isBlockElement(e.startContainer)&&e.startContainer||ice.dom.getBlockParent(e.startContainer,this.element)||null,o=n?ice.dom.hasNoTextOrStubContent(n):!1,r=n&&ice.dom.getNextContentNode(n,this.element),s=r?ice.dom.hasNoTextOrStubContent(r):!1,a=e.endContainer,d=e.endOffset,l=e.commonAncestorContainer;if(o)return!1;if(l.nodeType!==ice.dom.TEXT_NODE){if(0===d&&ice.dom.isBlockElement(l)&&!ice.dom.canContainTextElement(l)){var c=l.firstElementChild;if(c)return e.setStart(c,0),e.collapse(),this._deleteRight(e)}if(l.childNodes.length>d){var h=document.createTextNode(" ");return l.insertBefore(h,l.childNodes[d]),e.setStart(h,1),e.collapse(!0),i=this._deleteRight(e),ice.dom.remove(h),i}return t=ice.dom.getNextContentNode(l,this.element),e.setEnd(t,0),e.collapse(),this._deleteRight(e)}if(e.moveEnd(ice.dom.CHARACTER_UNIT,1),e.moveEnd(ice.dom.CHARACTER_UNIT,-1),d===a.data.length&&!ice.dom.hasNoTextOrStubContent(a)){if(t=ice.dom.getNextNode(a,this.element),!t)return e.selectNodeContents(a),e.collapse(),!1;if(ice.dom.BREAK_ELEMENT==ice.dom.getTagName(t)&&(t=ice.dom.getNextNode(t,this.element)),t.nodeType===ice.dom.TEXT_NODE&&(t=t.parentNode),!t.isContentEditable){i=this._addNodeTracking(t,!1,!1);var m=document.createTextNode("");return t.parentNode.insertBefore(m,t.nextSibling),e.selectNode(m),e.collapse(!0),i}if(this._handleVoidEl(t,e))return!0;if(ice.dom.isChildOf(t,n)&&ice.dom.isStubElement(t))return this._addNodeTracking(t,e,!1)}if(this._handleVoidEl(t,e))return!0;if(this._getNoTrackElement(e.endContainer.parentElement))return e.deleteContents(),!1;if(ice.dom.isOnBlockBoundary(e.startContainer,e.endContainer,this.element)){if(this.mergeBlocks&&ice.dom.is(ice.dom.getBlockParent(t,this.element),this.blockEl)){r!==ice.dom.getBlockParent(e.endContainer,this.element)&&e.setEnd(r,0);for(var g=ice.dom.getElementsBetween(e.startContainer,e.endContainer),u=0;u<g.length;u++)ice.dom.remove(g[u]);var p=e.startContainer,C=e.endContainer;return ice.dom.remove(ice.dom.find(p,"br")),ice.dom.remove(ice.dom.find(C,"br")),ice.dom.mergeBlockWithSibling(e,ice.dom.getBlockParent(e.endContainer,this.element)||n)}return s?(ice.dom.remove(r),e.collapse(!0),!0):(e.setStart(r,0),e.collapse(!0),!0)}var f=e.endContainer,v=f.splitText(e.endOffset);v.splitText(1);return this._addNodeTracking(v,e,!1)},_deleteLeft:function(e){var t,i,n=ice.dom.isBlockElement(e.startContainer)&&e.startContainer||ice.dom.getBlockParent(e.startContainer,this.element)||null,o=n?ice.dom.hasNoTextOrStubContent(n):!1,r=n&&ice.dom.getPrevContentNode(n,this.element),s=r?ice.dom.hasNoTextOrStubContent(r):!1,a=e.startContainer,d=e.startOffset,l=e.commonAncestorContainer;if(o)return!1;if(0===d||l.nodeType!==ice.dom.TEXT_NODE){if(ice.dom.isBlockElement(l)&&!ice.dom.canContainTextElement(l))if(0===d){var c=l.firstElementChild;if(c)return e.setStart(c,0),e.collapse(),this._deleteLeft(e)}else{var h=l.lastElementChild;if(h&&(t=e.getLastSelectableChild(h)))return e.setStart(t,t.data.length),e.collapse(),this._deleteLeft(e)}if(0===d)i=ice.dom.getPrevContentNode(a,this.element);else{i=l.childNodes[d-1]}if(!i)return!1;if(ice.dom.is(i,"."+this._getIceNodeClass("insertType")+", ."+this._getIceNodeClass("deleteType"))&&i.childNodes.length>0&&i.lastChild&&(i=i.lastChild),i.nodeType===ice.dom.TEXT_NODE&&(i=i.parentNode),!i.isContentEditable){var m=this._addNodeTracking(i,!1,!0),g=document.createTextNode("");return i.parentNode.insertBefore(g,i),e.selectNode(g),e.collapse(!0),m}if(this._handleVoidEl(i,e))return!0;if(ice.dom.isStubElement(i)&&ice.dom.isChildOf(i,n)||!i.isContentEditable)return this._addNodeTracking(i,e,!0);if(ice.dom.isStubElement(i))return ice.dom.remove(i),e.collapse(!0),!1;if(i!==n&&!ice.dom.isChildOf(i,n)){if(ice.dom.canContainTextElement(i)||(i=i.lastElementChild),i.lastChild&&i.lastChild.nodeType!==ice.dom.TEXT_NODE&&ice.dom.isStubElement(i.lastChild)&&"BR"!==i.lastChild.tagName)return e.setStartAfter(i.lastChild),e.collapse(!0),!0;if(t=e.getLastSelectableChild(i),t&&!ice.dom.isOnBlockBoundary(e.startContainer,t,this.element))return e.selectNodeContents(t),e.collapse(),!0}}if(1===d&&!ice.dom.isBlockElement(l)&&e.startContainer.childNodes.length>1&&e.startContainer.childNodes[0].nodeType===ice.dom.TEXT_NODE&&0===e.startContainer.childNodes[0].data.length)return e.setStart(e.startContainer,0),this._deleteLeft(e);if(e.moveStart(ice.dom.CHARACTER_UNIT,-1),e.moveStart(ice.dom.CHARACTER_UNIT,1),this._getNoTrackElement(e.startContainer.parentElement))return e.deleteContents(),!1;if(ice.dom.isOnBlockBoundary(e.startContainer,e.endContainer,this.element)){if(s)return ice.dom.remove(r),e.collapse(),!0;if(this.mergeBlocks&&ice.dom.is(ice.dom.getBlockParent(i,this.element),this.blockEl)){r!==ice.dom.getBlockParent(e.startContainer,this.element)&&e.setStart(r,r.childNodes.length);for(var u=ice.dom.getElementsBetween(e.startContainer,e.endContainer),p=0;p<u.length;p++)ice.dom.remove(u[p]);var C=e.startContainer,f=e.endContainer;return ice.dom.remove(ice.dom.find(C,"br")),ice.dom.remove(ice.dom.find(f,"br")),ice.dom.mergeBlockWithSibling(e,ice.dom.getBlockParent(e.endContainer,this.element)||n)}return r&&r.lastChild&&ice.dom.isStubElement(r.lastChild)?(e.setStartAfter(r.lastChild),e.collapse(!0),!0):(t=e.getLastSelectableChild(r),t?(e.setStart(t,t.data.length),e.collapse(!0)):r&&(e.setStart(r,r.childNodes.length),e.collapse(!0)),!0)}var v=e.startContainer,N=v.splitText(e.startOffset-1);N.splitText(1);return this._addNodeTracking(N,e,!0)},_addNodeTracking:function(e,t,i){var n=this.getIceNode(e,"insertType");if(n&&this._currentUserIceNode(n)){t&&i&&t.selectNode(e),e.parentNode.removeChild(e);var o=ice.dom.cloneNode(n);if(ice.dom.remove(ice.dom.find(o,".iceBookmark")),null!==n&&ice.dom.hasNoTextOrStubContent(o[0])){var r=this.env.document.createTextNode("");ice.dom.insertBefore(n,r),t&&(t.setStart(r,0),t.collapse(!0)),ice.dom.replaceWith(n,ice.dom.contents(n))}return!0}if(t&&this.getIceNode(e,"deleteType")){e.normalize();var s=!1;if(i){for(var a=ice.dom.getPrevContentNode(e,this.element);!s;)c=this.getIceNode(a,"deleteType"),c?a=ice.dom.getPrevContentNode(a,this.element):s=!0;if(a){var d=t.getLastSelectableChild(a);d&&(a=d),t.setStart(a,ice.dom.getNodeCharacterLength(a)),t.collapse(!0)}return!0}for(var l=ice.dom.getNextContentNode(e,this.element);!s;)c=this.getIceNode(l,"deleteType"),c?l=ice.dom.getNextContentNode(l,this.element):s=!0;return l&&(t.selectNodeContents(l),t.collapse(!0)),!0}e.previousSibling&&e.previousSibling.nodeType===ice.dom.TEXT_NODE&&0===e.previousSibling.length&&e.parentNode.removeChild(e.previousSibling),e.nextSibling&&e.nextSibling.nodeType===ice.dom.TEXT_NODE&&0===e.nextSibling.length&&e.parentNode.removeChild(e.nextSibling);var c,h=this.getIceNode(e.previousSibling,"deleteType"),m=this.getIceNode(e.nextSibling,"deleteType");if(h&&this._currentUserIceNode(h)){if(c=h,c.appendChild(e),m&&this._currentUserIceNode(m)){var g=ice.dom.extractContent(m);ice.dom.append(c,g),m.parentNode.removeChild(m)}}else m&&this._currentUserIceNode(m)?(c=m,c.insertBefore(e,c.firstChild)):(c=this.createIceNode("deleteType"),e.parentNode.insertBefore(c,e),c.appendChild(e));return t&&(ice.dom.isStubElement(e)?t.selectNode(e):t.selectNodeContents(e),i?t.collapse(!0):t.collapse(),e.normalize()),!0},_handleAncillaryKey:function(e){var t=e.keyCode?e.keyCode:e.which,i=ice.dom.browser(),n=!0,o=(e.shiftKey,this),r=o.getCurrentRange();switch(t){case ice.dom.DOM_VK_DELETE:n=this.deleteContents(),this.pluginsManager.fireKeyPressed(e);break;case 46:n=this.deleteContents(!0),this.pluginsManager.fireKeyPressed(e);break;case ice.dom.DOM_VK_DOWN:case ice.dom.DOM_VK_UP:case ice.dom.DOM_VK_LEFT:this.pluginsManager.fireCaretPositioned(),"mozilla"===i.type&&(this.visible(r.startContainer)||(r.startContainer.parentNode.previousSibling?(r.setEnd(r.startContainer.parentNode.previousSibling,0),r.moveEnd(ice.dom.CHARACTER_UNIT,ice.dom.getNodeCharacterLength(r.endContainer)),r.collapse(!1)):(r.setEnd(r.startContainer.parentNode.nextSibling,0),r.collapse(!1)))),n=!1;break;case ice.dom.DOM_VK_RIGHT:this.pluginsManager.fireCaretPositioned(),"mozilla"===i.type&&(this.visible(r.startContainer)||r.startContainer.parentNode.nextSibling&&(r.setStart(r.startContainer.parentNode.nextSibling,0),r.collapse(!0))),n=!1;break;case 32:n=!0;var r=this.getCurrentRange();this._moveRangeToValidTrackingPos(r,r.startContainer),this.insert(" ",r);break;default:n=!1}return n===!0?(ice.dom.preventDefault(e),!1):!0},keyDown:function(e){if(!this.pluginsManager.fireKeyDown(e))return ice.dom.preventDefault(e),!1;var t=!1;if(this._handleSpecialKey(e)===!1)return ice.dom.isBrowser("msie")!==!0&&(this._preventKeyPress=!0),!1;if(!(e.ctrlKey!==!0&&e.metaKey!==!0||ice.dom.isBrowser("msie")!==!0&&ice.dom.isBrowser("chrome")!==!0||this.pluginsManager.fireKeyPressed(e)))return!1;switch(e.keyCode){case 27:break;default:/Firefox/.test(navigator.userAgent)!==!0&&(t=!this._handleAncillaryKey(e))}return t?(ice.dom.preventDefault(e),!1):!0},keyPress:function(e){if(this._preventKeyPress===!0)return void(this._preventKeyPress=!1);if(!this.pluginsManager.fireKeyPress(e))return!1;var t=null;null==e.which?t=String.fromCharCode(e.keyCode):e.which>0&&(t=String.fromCharCode(e.which));var i=this.getCurrentRange(),n=ice.dom.parents(i.startContainer,"br")[0]||null;if(n&&(i.moveToNextEl(n),n.parentNode.removeChild(n)),null!==t&&e.ctrlKey!==!0&&e.metaKey!==!0){var o=e.keyCode?e.keyCode:e.which;switch(o){case ice.dom.DOM_VK_DELETE:return this._handleAncillaryKey(e);case ice.dom.DOM_VK_ENTER:return this._handleEnter();case 32:return this._handleAncillaryKey(e);default:return this._moveRangeToValidTrackingPos(i,i.startContainer),this.insert()}}return this._handleAncillaryKey(e)},_handleEnter:function(){var e=this.getCurrentRange();return e.collapsed||this.deleteContents(),!0},_handleSpecialKey:function(e){var t=e.which;null===t&&(t=e.keyCode);var i=!1;switch(t){case 65:if(e.ctrlKey===!0||e.metaKey===!0){i=!0;var n=this.getCurrentRange();if(ice.dom.isBrowser("msie")===!0){var o=this.env.document.createTextNode(""),r=this.env.document.createTextNode("");this.element.firstChild?ice.dom.insertBefore(this.element.firstChild,o):this.element.appendChild(o),this.element.appendChild(r),
-n.setStart(o,0),n.setEnd(r,0)}else{n.setStart(n.getFirstSelectableChild(this.element),0);var s=n.getLastSelectableChild(this.element);n.setEnd(s,s.length)}this.selection.addRange(n)}break;case 66:if(e.ctrlKey===!0||e.metaKey===!0){i=!0;var n=this.getCurrentRange();this._moveRangeToValidTrackingPos(n,n.startContainer),this.insertBold(" ",n)}break;case 73:if(e.ctrlKey===!0||e.metaKey===!0){i=!0;var n=this.getCurrentRange();this._moveRangeToValidTrackingPos(n,n.startContainer),this.insertItalic(" ",n)}break;case 85:if(e.ctrlKey===!0||e.metaKey===!0){i=!0;var n=this.getCurrentRange();this._moveRangeToValidTrackingPos(n,n.startContainer),this.insertUnderline(" ",n)}}return i===!0?(ice.dom.preventDefault(e),!1):!0},mouseUp:function(e,t){return this.pluginsManager.fireClicked(e)?void this.pluginsManager.fireSelectionChanged(this.getCurrentRange()):!1},mouseDown:function(e,t){return this.pluginsManager.fireMouseDown(e)?void this.pluginsManager.fireCaretUpdated():!1}},i.ice=this.ice||{},i.ice.InlineChangeEditor=t}).call(this);
+(function () {
+
+  var exports = this,
+    defaults, InlineChangeEditor;
+
+  defaults = {
+    // ice node attribute names:
+    changeIdAttribute: 'data-cid',
+    userIdAttribute: 'data-userid',
+    userNameAttribute: 'data-username',
+    timeAttribute: 'data-time',
+
+    // Prepended to `changeType.alias` for classname uniqueness, if needed
+    attrValuePrefix: '',
+
+    // Block element tagname, which wrap text and other inline nodes in `this.element`
+    blockEl: 'p',
+
+    // All permitted block element tagnames
+    blockEls: ['p', 'ol', 'ul', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote'],
+
+    // Unique style prefix, prepended to a digit, incremented for each encountered user, and stored
+    // in ice node class attributes - cts1, cts2, cts3, ...
+    stylePrefix: 'cts',
+    currentUser: {
+      id: null,
+      name: null
+    },
+
+    // Default change types are insert and delete. Plugins or outside apps should extend this
+    // if they want to manage new change types. The changeType name is used as a primary
+    // reference for ice nodes; the `alias`, is dropped in the class attribute and is the
+    // primary method of identifying ice nodes; and `tag` is used for construction only.
+    // Invoking `this.getCleanContent()` will remove all delete type nodes and remove the tags
+    // for the other types, leaving the html content in place.
+    changeTypes: {
+      insertType: {
+        tag: 'span',
+        alias: 'ins',
+        action: 'Inserted'
+      },
+      deleteType: {
+        tag: 'span',
+        alias: 'del',
+        action: 'Deleted'
+      },
+	  boldType: {
+        tag: 'b',
+        alias: 'bold',
+        action: 'Bolded'
+      },
+	  italicType: {
+        tag: 'i',
+        alias: 'itc',
+        action: 'italicized'
+      },
+	  underlineType: {
+        tag: 'u',
+        alias: 'uln',
+        action: 'Underlined'
+      }
+    },
+
+    // If `true`, setup event listeners on `this.element` and handle events - good option for a basic
+    // setup without a text editor. Otherwise, when set to `false`, events need to be manually passed
+    // to `handleEvent`, which is good for a text editor with an event callback handler, like tinymce.
+    handleEvents: false,
+
+    // Sets this.element with the contentEditable element
+    contentEditable: true,
+
+    // Switch for toggling track changes on/off - when `false` events will be ignored.
+    isTracking: true,
+
+    // NOT IMPLEMENTED - Selector for elements that will not get track changes
+    noTrack: '.ice-no-track',
+
+    // Selector for elements to avoid - move range before or after - similar handling to deletes
+    avoid: '.ice-avoid',
+
+    // Switch for whether paragraph breaks should be removed when the user is deleting over a
+    // paragraph break while changes are tracked.
+    mergeBlocks: true
+  };
+
+  InlineChangeEditor = function (options) {
+
+    // Data structure for modelling changes in the element according to the following model:
+    //  [changeid] => {`type`, `time`, `userid`, `username`}
+    this._changes = {};
+
+    options || (options = {});
+    if (!options.element) throw Error("`options.element` must be defined for ice construction.");
+
+    ice.dom.extend(true, this, defaults, options);
+
+    this.pluginsManager = new ice.IcePluginManager(this);
+    if (options.plugins) this.pluginsManager.usePlugins('ice-init', options.plugins);
+  };
+
+  InlineChangeEditor.prototype = {
+    // Tracks all of the styles for users according to the following model:
+    //  [userId] => styleId; where style is "this.stylePrefix" + "this.uniqueStyleIndex"
+    _userStyles: {},
+    _styles: {},
+
+    // Incremented for each new user and appended to they style prefix, and dropped in the
+    // ice node class attribute.
+    _uniqueStyleIndex: 0,
+
+    _browserType: null,
+
+    // One change may create multiple ice nodes, so this keeps track of the current batch id.
+    _batchChangeid: null,
+
+    // Incremented for each new change, dropped in the changeIdAttribute.
+    _uniqueIDIndex: 1,
+
+    // Temporary bookmark tags for deletes, when delete placeholding is active.
+    _delBookmark: 'tempdel',
+    isPlaceHoldingDeletes: false,
+
+    /**
+     * Turns on change tracking - sets up events, if needed, and initializes the environment,
+     * range, and editor.
+     */
+    startTracking: function () {
+      this.element.setAttribute('contentEditable', this.contentEditable);
+
+      // If we are handling events setup the delegate to handle various events on `this.element`.
+      if (this.handleEvents) {
+        var self = this;
+        ice.dom.bind(self.element, 'keyup.ice keydown.ice keypress.ice mousedown.ice mouseup.ice', function (e) {
+          return self.handleEvent(e);
+        });
+      }
+
+      this.initializeEnvironment();
+      this.initializeEditor();
+      this.findTrackTags();
+      this.initializeRange();
+
+      this.pluginsManager.fireEnabled(this.element);
+      return this;
+    },
+
+    /**
+     * Removes contenteditability and stops event handling.
+     */
+    stopTracking: function () {
+      this.element.setAttribute('contentEditable', !this.contentEditable);
+
+      // If we are handling events setup the delegate to handle various events on `this.element`.
+      if (this.handleEvents) {
+        var self = this;
+        ice.dom.unbind(self.element, 'keyup.ice keydown.ice keypress.ice mousedown.ice mouseup.ice');
+      }
+
+      this.pluginsManager.fireDisabled(this.element);
+      return this;
+    },	
+	
+
+    /**
+     * Initializes the `env` object with pointers to key objects of the page.
+     */
+    initializeEnvironment: function () {
+      this.env || (this.env = {});	  
+      this.env.element = this.element;
+      this.env.document = this.element.ownerDocument;
+      this.env.window = this.env.document.defaultView || this.env.document.parentWindow || window;
+      this.env.frame = this.env.window.frameElement;
+      this.env.selection = this.selection = new ice.Selection(this.env);
+      // Hack for using custom tags in IE 8/7
+      this.env.document.createElement(this.changeTypes.insertType.tag);
+      this.env.document.createElement(this.changeTypes.deleteType.tag);
+	  this.env.document.createElement(this.changeTypes.boldType.tag);
+	  this.env.document.createElement(this.changeTypes.italicType.tag);
+	  this.env.document.createElement(this.changeTypes.underlineType.tag);	  
+    },
+	
+    /**
+     * Initializes the internal range object and sets focus to the editing element.
+     */
+    initializeRange: function () {
+      var range = this.selection.createRange();
+      range.setStart(ice.dom.find(this.element, this.blockEls.join(', '))[0], 0);
+      range.collapse(true);
+      this.selection.addRange(range);
+      if (this.env.frame) this.env.frame.contentWindow.focus();
+      else this.element.focus();
+    },
+
+    /**
+     * Initializes the content in the editor - cleans non-block nodes found between blocks.
+     */
+    initializeEditor: function () {
+      // Clean the element html body - add an empty block if there is no body, or remove any
+      // content between elements.
+      var body = this.env.document.createElement('div');
+      if (this.element.childNodes.length) {
+        body.innerHTML = this.element.innerHTML;
+        ice.dom.removeWhitespace(body);
+        if (body.innerHTML === '') body.appendChild(ice.dom.create('<' + this.blockEl + ' ><br/></' + this.blockEl + '>'));
+      } else {
+        body.appendChild(ice.dom.create('<' + this.blockEl + ' ><br/></' + this.blockEl + '>'));
+      }
+      if (this.element.innerHTML != body.innerHTML) {
+        this.element.innerHTML = body.innerHTML;
+      }
+
+    },
+
+ 
+    /*
+     * Updates the list of changes to include all track tags found inside the element.
+     */
+    findTrackTags: function () {
+      
+      // Grab class for each changeType
+      var self = this, changeTypeClasses = [];
+      for (var changeType in this.changeTypes) {
+        changeTypeClasses.push(this._getIceNodeClass(changeType));
+      }
+
+      ice.dom.each(ice.dom.find(this.element, '.' + changeTypeClasses.join(', .')), function (i, el) {
+        var styleIndex = 0;
+        var ctnType = '';
+        var classList = el.className.split(' ');
+        for (var i = 0; i < classList.length; i++) {
+          var styleReg = new RegExp(self.stylePrefix + '-(\\d+)').exec(classList[i]);
+          if (styleReg) styleIndex = styleReg[1];
+          var ctnReg = new RegExp('(' + changeTypeClasses.join('|') + ')').exec(classList[i]);
+          if (ctnReg) ctnType = self._getChangeTypeFromAlias(ctnReg[1]);
+        }
+        var userid = ice.dom.attr(el, self.userIdAttribute);
+        self.setUserStyle(userid, Number(styleIndex));
+        var changeid = ice.dom.attr(el, self.changeIdAttribute);
+        self._changes[changeid] = {
+          type: ctnType,
+          userid: userid,
+          username: ice.dom.attr(el, self.userNameAttribute),
+          time: ice.dom.attr(el, self.timeAttribute)
+        };
+      });
+    },
+
+    /**
+     * Turn on change tracking and event handling.
+     */
+    enableChangeTracking: function () {
+      this.isTracking = true;
+      this.pluginsManager.fireEnabled(this.element);
+    },
+
+    /**
+     * Turn off change tracking and event handling.
+     */
+    disableChangeTracking: function () {
+      this.isTracking = false;
+      this.pluginsManager.fireDisabled(this.element);
+    },
+
+    /**
+     * Set the user to be tracked. A user object has the following properties:
+     * {`id`, `name`}
+     */
+    setCurrentUser: function (user) {		
+      this.currentUser = user;
+    },
+
+    /**
+     * If tracking is on, handles event e when it is one of the following types:
+     * mouseup, mousedown, keypress, keydown, and keyup. Each event type is
+     * propagated to all of the plugins. Prevents default handling if the event
+     * was fully handled.
+     */
+    handleEvent: function (e) {		
+      if (!this.isTracking) return;		  		
+      if (e.type == 'mouseup') {
+        var self = this;
+        setTimeout(function () {
+          self.mouseUp(e);
+        }, 200);
+      } else if (e.type == 'mousedown') {
+        return this.mouseDown(e);
+      } else if (e.type == 'keypress') {		   
+        var needsToBubble = this.keyPress(e);					
+        if (!needsToBubble) e.preventDefault();
+        return needsToBubble;
+      } else if (e.type == 'keydown') {		 
+        var needsToBubble = this.keyDown(e);		
+        if (!needsToBubble) e.preventDefault();
+        return needsToBubble;
+      } else if (e.type == 'keyup') {
+        this.pluginsManager.fireCaretUpdated();
+      }
+    },
+  visible: function(el) {
+    if(el.nodeType === ice.dom.TEXT_NODE) el = el.parentNode;
+    var rect = el.getBoundingClientRect();
+    return ( rect.top > 0 && rect.left > 0);
+  },
+
+    /**
+     * Returns a tracking tag for the given `changeType`, with the optional `childNode` appended.
+     */
+    createIceNode: function (changeType, childNode) {
+		
+      var node = this.env.document.createElement(this.changeTypes[changeType].tag);
+      ice.dom.addClass(node, this._getIceNodeClass(changeType));
+
+      node.appendChild(childNode ? childNode : this.env.document.createTextNode(''));
+      this.addChange(this.changeTypes[changeType].alias, [node]);
+
+      this.pluginsManager.fireNodeCreated(node, {
+        'action': this.changeTypes[changeType].action
+      });
+      return node;
+    },
+	
+	//*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************//
+	insertBold: function (node, range) {	    
+    	var prevent = true;
+    	var browser = ice.dom.browser();
+
+      if (range) {
+        this.selection.addRange(range);
+      } else {
+        range = this.getCurrentRange();
+      }
+		
+      var changeid = this.startBatchChange(this.changeTypes['boldType'].alias);	  
+      if (range.collapsed === false) {
+				  // Bookmark the range and get elements between.
+				  var bookmark = new ice.Bookmark(this.env, range),
+					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
+					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
+					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
+					betweenBlocks = new Array(); 
+					
+				  for (var i = 0; i < elements.length; i++) {
+					  
+					var elem = elements[i];				
+					if (ice.dom.isBlockElement(elem)) {
+					  betweenBlocks.push(elem);
+					  if (!ice.dom.canContainTextElement(elem)) {
+						// Ignore containers that are not supposed to contain text. Check children instead.
+						for (var k = 0; k < elem.childNodes.length; k++) {
+						  elements.push(elem.childNodes[k]);
+						}
+						continue;
+					  }
+					}
+					
+					// Ignore empty space nodes
+					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
+			
+					if (!this._getVoidElement(elem)) {					 
+					  var parentBlock = ice.dom.getBlockParent(elem);
+					// console.log(JSON.parse(JSON.stringify(elem)));					
+					  this._addNodeBoldTracking(elem, false, true, true);					  				  
+					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {						  
+						ice.dom.remove(parentBlock);
+					  }
+					}
+				  }
+			
+				  if (this.mergeBlocks && b1 !== b2) {
+					while (betweenBlocks.length)
+					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
+					ice.dom.removeBRFromChild(b2);
+					ice.dom.removeBRFromChild(b1);
+					ice.dom.mergeContainers(b2, b1);
+				  }
+			
+				  bookmark.selectBookmark();
+			//      range.collapse(false);
+			  range.collapse(true);
+	     
+	
+      }
+	  
+      this.selection.addRange(range);
+	 
+      this.endBatchChange(changeid);
+      return prevent;
+    
+    },
+
+   //Add tracking CTRL+B
+	_addNodeBoldTracking: function (contentNode, range, moveLeft) {
+		
+		
+		var contentAddNode = this.getIceNode(contentNode, 'boldType');
+		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {						
+			var boldSel = '.' + this._getIceNodeClass('boldType');
+			ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
+				ice.dom.replaceWith(el, ice.dom.contents(el));
+			 });
+			 //ice.dom.remove(ice.dom.find(this.element, boldSel));
+          return true;
+		  		
+      }
+				
+		// Webkit likes to insert empty text nodes next to elements. We bold them here.
+      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.previousSibling);
+      }
+      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.nextSibling);
+      }
+	  
+      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'boldType');
+      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'boldType');
+      var ctNode;
+	  	
+      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {		  
+        ctNode = prevDelNode;
+        ctNode.appendChild(contentNode);
+		
+        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+          var nextDelContents = ice.dom.extractContent(nextDelNode);
+          ice.dom.append(ctNode, nextDelContents);		  
+          nextDelNode.parentNode.removeChild(nextDelNode);
+        }
+      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {		 
+        ctNode = nextDelNode;
+        ctNode.insertBefore(contentNode, ctNode.firstChild);
+      } else {
+		  	
+        ctNode = this.createIceNode('boldType');
+        contentNode.parentNode.insertBefore(ctNode, contentNode);
+		ctNode.appendChild(contentNode);
+      }
+
+      if (range) {
+		 
+        if (ice.dom.isStubElement(contentNode)) {			
+          range.selectNode(contentNode);
+        } else {
+          range.selectNodeContents(contentNode);
+        }
+        if (moveLeft) {
+          range.collapse(true);
+        } else {
+          range.collapse();
+        }
+        contentNode.normalize();
+      }
+      return true;
+	},
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************
+
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************//
+	insertItalic: function (node, range) {  	    
+    	var prevent = true;
+    	var browser = ice.dom.browser();
+
+      if (range) {
+        this.selection.addRange(range);
+      } else {
+        range = this.getCurrentRange();
+      }
+
+      var changeid = this.startBatchChange(this.changeTypes['italicType'].alias);	  
+      if (range.collapsed === false) {		  
+
+				  // Bookmark the range and get elements between.
+				  var bookmark = new ice.Bookmark(this.env, range),
+					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
+					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
+					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
+					betweenBlocks = new Array(); 
+					
+				  for (var i = 0; i < elements.length; i++) {
+					  
+					var elem = elements[i];
+					console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(elem))));
+					if (ice.dom.isBlockElement(elem)) {
+					  betweenBlocks.push(elem);
+					  if (!ice.dom.canContainTextElement(elem)) {
+						// Ignore containers that are not supposed to contain text. Check children instead.
+						for (var k = 0; k < elem.childNodes.length; k++) {
+						  elements.push(elem.childNodes[k]);
+						}
+						continue;
+					  }
+					}
+					
+					// Ignore empty space nodes
+					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
+			
+					if (!this._getVoidElement(elem)) {					 
+					  var parentBlock = ice.dom.getBlockParent(elem);
+					  this._addNodeItalicTracking(elem, false, true, true);
+					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
+						ice.dom.remove(parentBlock);
+					  }
+					}
+				  }
+			
+				  if (this.mergeBlocks && b1 !== b2) {
+					while (betweenBlocks.length)
+					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
+					ice.dom.removeBRFromChild(b2);
+					ice.dom.removeBRFromChild(b1);
+					ice.dom.mergeContainers(b2, b1);
+				  }
+			
+				  bookmark.selectBookmark();
+			//      range.collapse(false);
+			  range.collapse(true);    
+	
+      }
+	  
+      this.selection.addRange(range);
+      this.endBatchChange(changeid);
+      return prevent;
+    
+    },
+
+   //Add tracking CTRL+I
+	_addNodeItalicTracking: function (contentNode, range, moveLeft) {
+		
+		var contentAddNode = this.getIceNode(contentNode, 'italicType');
+		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {		
+			var italicSel = '.' + this._getIceNodeClass('italicType');
+			ice.dom.each(ice.dom.find(this.element, italicSel), function (i, el) {
+				ice.dom.replaceWith(el, ice.dom.contents(el));
+			 });					
+        return true;		
+      }
+	  
+	  
+		// Webkit likes to insert empty text nodes next to elements. We bold them here.
+      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.previousSibling);
+      }
+      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.nextSibling);
+      }
+      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'italicType');
+      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'italicType');
+      var ctNode;
+
+      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {
+        ctNode = prevDelNode;
+        ctNode.appendChild(contentNode);
+        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+          var nextDelContents = ice.dom.extractContent(nextDelNode);
+          ice.dom.append(ctNode, nextDelContents);
+          nextDelNode.parentNode.removeChild(nextDelNode);
+        }
+      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+        ctNode = nextDelNode;
+        ctNode.insertBefore(contentNode, ctNode.firstChild);
+      } else {
+        ctNode = this.createIceNode('italicType');
+        contentNode.parentNode.insertBefore(ctNode, contentNode);
+        ctNode.appendChild(contentNode);
+      }
+
+      if (range) {
+        if (ice.dom.isStubElement(contentNode)) {
+          range.selectNode(contentNode);
+        } else {
+          range.selectNodeContents(contentNode);
+        }
+        if (moveLeft) {
+          range.collapse(true);
+        } else {
+          range.collapse();
+        }
+        contentNode.normalize();
+      }
+      return true;
+	},
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************
+
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************//
+	insertUnderline: function (node, range) {  	    
+    	var prevent = true;
+    	var browser = ice.dom.browser();
+
+      if (range) {
+        this.selection.addRange(range);
+      } else {
+        range = this.getCurrentRange();
+      }
+
+      var changeid = this.startBatchChange(this.changeTypes['underlineType'].alias);	  
+      if (range.collapsed === false) {		  
+
+				  // Bookmark the range and get elements between.
+				  var bookmark = new ice.Bookmark(this.env, range),
+					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
+					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
+					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
+					betweenBlocks = new Array(); 
+					
+				  for (var i = 0; i < elements.length; i++) {
+					  
+					var elem = elements[i];
+					console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(elem))));
+					if (ice.dom.isBlockElement(elem)) {
+					  betweenBlocks.push(elem);
+					  if (!ice.dom.canContainTextElement(elem)) {
+						// Ignore containers that are not supposed to contain text. Check children instead.
+						for (var k = 0; k < elem.childNodes.length; k++) {
+						  elements.push(elem.childNodes[k]);
+						}
+						continue;
+					  }
+					}
+					
+					// Ignore empty space nodes
+					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
+			
+					if (!this._getVoidElement(elem)) {					 
+					  var parentBlock = ice.dom.getBlockParent(elem);
+					  this._addNodeUnderlineTracking(elem, false, true, true);
+					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
+						ice.dom.remove(parentBlock);
+					  }
+					}
+				  }
+			
+				  if (this.mergeBlocks && b1 !== b2) {
+					while (betweenBlocks.length)
+					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
+					ice.dom.removeBRFromChild(b2);
+					ice.dom.removeBRFromChild(b1);
+					ice.dom.mergeContainers(b2, b1);
+				  }
+			
+				  bookmark.selectBookmark();
+			//      range.collapse(false);
+			  range.collapse(true);    
+	
+      }
+	  
+      this.selection.addRange(range);
+      this.endBatchChange(changeid);
+      return prevent;
+    
+    },
+
+   //Add tracking CTRL+U
+	_addNodeUnderlineTracking: function (contentNode, range, moveLeft) {
+		
+		var contentAddNode = this.getIceNode(contentNode, 'underlineType');
+		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {		
+		
+			var underlineSel = '.' + this._getIceNodeClass('underlineType');
+			ice.dom.each(ice.dom.find(this.element, underlineSel), function (i, el) {
+				ice.dom.replaceWith(el, ice.dom.contents(el));
+			 });
+					
+        return true;		
+      }
+	  
+		// Webkit likes to insert empty text nodes next to elements. We bold them here.
+      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.previousSibling);
+      }
+      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.nextSibling);
+      }
+      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'underlineType');
+      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'underlineType');
+      var ctNode;
+
+      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {
+        ctNode = prevDelNode;
+        ctNode.appendChild(contentNode);
+        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+          var nextDelContents = ice.dom.extractContent(nextDelNode);
+          ice.dom.append(ctNode, nextDelContents);
+          nextDelNode.parentNode.removeChild(nextDelNode);
+        }
+      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+        ctNode = nextDelNode;
+        ctNode.insertBefore(contentNode, ctNode.firstChild);
+      } else {
+        ctNode = this.createIceNode('underlineType');
+        contentNode.parentNode.insertBefore(ctNode, contentNode);
+        ctNode.appendChild(contentNode);
+      }
+
+      if (range) {
+        if (ice.dom.isStubElement(contentNode)) {
+          range.selectNode(contentNode);
+        } else {
+          range.selectNodeContents(contentNode);
+        }
+        if (moveLeft) {
+          range.collapse(true);
+        } else {
+          range.collapse();
+        }
+        contentNode.normalize();
+      }
+      return true;
+	},
+//*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************
+
+
+    /**
+     * Inserts the given string/node into the given range with tracking tags, collapsing (deleting)
+     * the range first if needed. If range is undefined, then the range from the Selection object
+     * is used. If the range is in a parent delete node, then the range is positioned after the delete.
+     */
+    insert: function (node, range) {
+      // If the node is not defined, then we need to insert an
+      // invisible space and force propagation to the browser.
+      var isPropagating = !node;
+      node || (node = '\uFEFF');
+
+      if (range) this.selection.addRange(range);
+      else range = this.getCurrentRange();
+
+      if (typeof node === "string") node = document.createTextNode(node);
+
+      // If we have any nodes selected, then we want to delete them before inserting the new text.
+      if (!range.collapsed) {
+        //this.deleteContents();
+        // Update the range
+        range = this.getCurrentRange();
+        if (range.startContainer === range.endContainer && this.element === range.startContainer) {
+          // The whole editable element is selected. Need to remove everything and init its contents.
+          ice.dom.empty(this.element);
+          var firstSelectable = range.getLastSelectableChild(this.element);
+          range.setStartAfter(firstSelectable);
+          range.collapse(true);
+        }
+      }
+      // If we are in a non-tracking/void element, move the range to the end/outside.
+      this._moveRangeToValidTrackingPos(range);
+
+      var changeid = this.startBatchChange();
+      // Send a dummy node to be inserted, if node is undefined
+      this._insertNode(node, range, isPropagating);
+      this.pluginsManager.fireNodeInserted(node, range);
+      this.endBatchChange(changeid);
+      return isPropagating;
+    },
+
+    /**
+     * This command will drop placeholders in place of delete tags in the element
+     * body and store references in the `_deletes` array to the original delete nodes.
+     *
+     * A placeholder tag is of the following structure:
+     *   <tempdel data-allocation="[NUM]" />
+     * Where [NUM] is the referenced allocation in the `_deletes` array where the
+     * original delete node is stored.
+     */
+    placeholdDeletes: function () {
+      var self = this;
+      if (this.isPlaceholdingDeletes) {
+        this.revertDeletePlaceholders();
+      }
+      this.isPlaceholdingDeletes = true;
+      this._deletes = [];
+      var deleteSelector = '.' + this._getIceNodeClass('deleteType');
+      ice.dom.each(ice.dom.find(this.element, deleteSelector), function (i, el) {
+        self._deletes.push(ice.dom.cloneNode(el));
+        ice.dom.replaceWith(el, '<' + self._delBookmark + ' data-allocation="' + (self._deletes.length - 1) + '"/>');
+      });
+      return true;
+    },
+
+    /**
+     * Replaces all delete placeholders in the element body with the referenced
+     * delete nodes in the `_deletes` array.
+     *
+     * A placeholder tag is of the following structure:
+     *   <tempdel data-allocation="[NUM]" />
+     * Where [NUM] is the referenced allocation in the `_deletes` array where the
+     * original delete node is stored.
+     */
+    revertDeletePlaceholders: function () {
+      var self = this;
+      if (!this.isPlaceholdingDeletes) {
+        return false;
+      }
+      ice.dom.each(this._deletes, function (i, el) {
+        ice.dom.find(self.element, self._delBookmark + '[data-allocation=' + i + ']').replaceWith(el);
+      });
+      this.isPlaceholdingDeletes = false;
+      return true;
+    },
+    /**
+     * Deletes the contents in the given range or the range from the Selection object. If the range
+     * is not collapsed, then a selection delete is handled; otherwise, it deletes one character
+     * to the left or right if the right parameter is false or true, respectively.
+     *
+     * @return true if deletion was handled.
+     */
+    deleteContents: function (right, range) {
+      var prevent = true;
+    var browser = ice.dom.browser();
+
+      if (range) {
+        this.selection.addRange(range);
+      } else {
+        range = this.getCurrentRange();
+      }
+
+      var changeid = this.startBatchChange(this.changeTypes['deleteType'].alias);
+      if (range.collapsed === false) {
+    if(this._currentUserIceNode(range.startContainer.parentNode)){
+      this._deleteSelection(range);
+    } else {
+      this._deleteSelection(range);
+      if(browser["type"] === "mozilla"){
+        if(range.startContainer.parentNode.previousSibling){
+          range.setEnd(range.startContainer.parentNode.previousSibling, 0);
+          range.moveEnd(ice.dom.CHARACTER_UNIT, ice.dom.getNodeCharacterLength(range.endContainer));
+        } else {
+          range.setEndAfter(range.startContainer.parentNode);
+        }
+        range.collapse(false);
+      } else {
+        if(!this.visible(range.endContainer)){
+          range.setEnd(range.endContainer, range.endOffset - 1);
+          range.collapse(false);
+        }
+      }
+    }
+      } else {
+        if (right) {
+      // RIGHT DELETE
+      if(browser["type"] === "mozilla"){
+        prevent = this._deleteRight(range);
+        // Handling track change show/hide
+        if(!this.visible(range.endContainer)){
+          if(range.endContainer.parentNode.nextSibling){
+//            range.setEnd(range.endContainer.parentNode.nextSibling, 0);
+            range.setEndBefore(range.endContainer.parentNode.nextSibling);
+          } else {
+            range.setEndAfter(range.endContainer);
+          }
+          range.collapse(false);
+        }
+      }
+      else {
+        // Calibrate Cursor before deleting
+        if(range.endOffset === ice.dom.getNodeCharacterLength(range.endContainer)){
+          var next = range.startContainer.nextSibling;
+          if (ice.dom.is(next,  '.' + this._getIceNodeClass('deleteType'))) {
+            while(next){
+              if (ice.dom.is(next,  '.' + this._getIceNodeClass('deleteType'))) {
+                next = next.nextSibling;
+                continue;
+              }
+              range.setStart(next, 0);
+              range.collapse(true);
+              break;
+            }
+          }
+        }
+
+        // Delete
+        prevent = this._deleteRight(range);
+
+        // Calibrate Cursor after deleting
+        if(!this.visible(range.endContainer)){
+          if (ice.dom.is(range.endContainer.parentNode,  '.' + this._getIceNodeClass('insertType') + ', .' + this._getIceNodeClass('deleteType'))) {
+//            range.setStart(range.endContainer.parentNode.nextSibling, 0);
+            range.setStartAfter(range.endContainer.parentNode);
+            range.collapse(true);
+          }
+        }
+      }
+    }
+        else {
+      // LEFT DELETE
+      if(browser["type"] === "mozilla"){
+        prevent = this._deleteLeft(range);
+        // Handling track change show/hide
+        if(!this.visible(range.startContainer)){
+          if(range.startContainer.parentNode.previousSibling){
+            range.setEnd(range.startContainer.parentNode.previousSibling, 0);
+          } else {
+            range.setEnd(range.startContainer.parentNode, 0);
+          }
+          range.moveEnd(ice.dom.CHARACTER_UNIT, ice.dom.getNodeCharacterLength(range.endContainer));
+          range.collapse(false);
+        }
+      }
+      else {
+        if(!this.visible(range.startContainer)){
+          if(range.endOffset === ice.dom.getNodeCharacterLength(range.endContainer)){
+            var prev = range.startContainer.previousSibling;
+            if (ice.dom.is(prev,  '.' + this._getIceNodeClass('deleteType'))) {
+              while(prev){
+                if (ice.dom.is(prev,  '.' + this._getIceNodeClass('deleteType'))) {
+                  prev = prev.prevSibling;
+                  continue;
+                }
+                range.setEndBefore(prev.nextSibling, 0);
+                range.collapse(false);
+                break;
+              }
+            }
+          }
+        }
+        prevent = this._deleteLeft(range);
+      }
+    }
+      }
+
+      this.selection.addRange(range);
+      this.endBatchChange(changeid);
+      return prevent;
+    },
+
+    /**
+     * Returns the changes - a hash of objects with the following properties:
+     * [changeid] => {`type`, `time`, `userid`, `username`}
+     */
+    getChanges: function () {
+      return this._changes;
+    },
+
+    /**
+     * Returns an array with the user ids who made the changes
+     */
+    getChangeUserids: function () {
+      var result = [];
+      var keys = Object.keys(this._changes);
+
+      for (var key in keys)
+      result.push(this._changes[keys[key]].userid);
+
+      return result.sort().filter(function (el, i, a) {
+        if (i == a.indexOf(el)) return 1;
+        return 0;
+      });
+    },
+
+    /**
+     * Returns the html contents for the tracked element.
+     */
+    getElementContent: function () {
+      return this.element.innerHTML;
+    },
+
+    /**
+     * Returns the html contents, without tracking tags, for `this.element` or
+     * the optional `body` param which can be of either type string or node.
+     * Delete tags, and their html content, are completely removed; all other
+     * change type tags are removed, leaving the html content in place. After
+     * cleaning, the optional `callback` is executed, which should further
+     * modify and return the element body.
+     *
+     * prepare gets run before the body is cleaned by ice.
+     */
+    getCleanContent: function (body, callback, prepare) {
+      var classList = '';
+      var self = this;
+      ice.dom.each(this.changeTypes, function (type, i) {
+        if (type != 'deleteType') {
+          if (i > 0) classList += ',';
+          classList += '.' + self._getIceNodeClass(type);
+        }
+      });
+      if (body) {
+        if (typeof body === 'string') body = ice.dom.create('<div>' + body + '</div>');
+        else body = ice.dom.cloneNode(body, false)[0];
+      } else {
+        body = ice.dom.cloneNode(this.element, false)[0];
+      }
+      body = prepare ? prepare.call(this, body) : body;
+      var changes = ice.dom.find(body, classList);
+      ice.dom.each(changes, function (el, i) {
+        ice.dom.replaceWith(this, ice.dom.contents(this));
+      });
+      var deletes = ice.dom.find(body, '.' + this._getIceNodeClass('deleteType'));
+      ice.dom.remove(deletes);
+
+      body = callback ? callback.call(this, body) : body;
+
+      return body.innerHTML;
+    },
+
+    /**
+     * Accepts all changes in the element body - removes delete nodes, and removes outer
+     * insert tags keeping the inner content in place.
+     */
+    acceptAll: function () {
+      this.element.innerHTML = this.getCleanContent();
+    },
+
+    /**
+     * Rejects all changes in the element body - removes insert nodes, and removes outer
+     * delete tags keeping the inner content in place.*
+     */
+    rejectAll: function () {
+      var insSel = '.' + this._getIceNodeClass('insertType');
+      var delSel = '.' + this._getIceNodeClass('deleteType');
+	  var boldSel = '.' + this._getIceNodeClass('boldType');
+	  var italicSel = '.' + this._getIceNodeClass('italicType');
+	  var underlineSel = '.' + this._getIceNodeClass('underlineType');
+	  		
+      ice.dom.remove(ice.dom.find(this.element, insSel));
+      ice.dom.each(ice.dom.find(this.element, delSel), function (i, el) {
+        ice.dom.replaceWith(el, ice.dom.contents(el));
+      });
+	  ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
+        ice.dom.replaceWith(el, ice.dom.contents(el));
+      });
+	  ice.dom.remove(ice.dom.find(this.element, italicSel));
+	  ice.dom.remove(ice.dom.find(this.element, underlineSel));
+	 /* ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
+        ice.dom.replaceWith(el, ice.dom.contents(el));
+      });*/
+    },
+
+    /**
+     * Accepts the change at the given, or first tracking parent node of, `node`.  If
+     * `node` is undefined then the startContainer of the current collapsed range will be used.
+     * In the case of insert, inner content will be used to replace the containing tag; and in
+     * the case of delete, the node will be removed.
+     */
+    acceptChange: function (node) {
+      this.acceptRejectChange(node, true);
+    },
+
+    /**
+     * Rejects the change at the given, or first tracking parent node of, `node`.  If
+     * `node` is undefined then the startContainer of the current collapsed range will be used.
+     * In the case of delete, inner content will be used to replace the containing tag; and in
+     * the case of insert, the node will be removed.
+     */
+    rejectChange: function (node) {
+      this.acceptRejectChange(node, false);
+    },
+
+    /**
+     * Handles accepting or rejecting tracking changes
+     */
+    acceptRejectChange: function (node, isAccept) {
+      var delSel, insSel, boldSel, italicSel, underlineSel, selector, removeSel, replaceSel, trackNode, changes, dom = ice.dom;
+
+      if (!node) {
+        var range = this.getCurrentRange();
+        if (!range.collapsed) return;
+        else node = range.startContainer;
+      }
+
+      delSel = removeSel = '.' + this._getIceNodeClass('deleteType');
+      insSel = replaceSel = '.' + this._getIceNodeClass('insertType');
+	  boldSel = replaceSel = '.' + this._getIceNodeClass('boldType');
+	  italicSel = replaceSel = '.' + this._getIceNodeClass('italicType');
+	  underlineSel = replaceSel = '.' + this._getIceNodeClass('underlineType');
+	  
+      selector = delSel + ',' + insSel + ',' + boldSel+ ',' + italicSel+ ',' + underlineSel;
+      trackNode = dom.getNode(node, selector);
+      // Some changes are done in batches so there may be other tracking
+      // nodes with the same `changeIdAttribute` batch number.
+      changes = dom.find(this.element, '[' + this.changeIdAttribute + '=' + dom.attr(trackNode, this.changeIdAttribute) + ']');
+
+      if (!isAccept) {
+        removeSel = insSel;
+        replaceSel = delSel;
+		replaceSel = boldSel;
+      }
+
+      if (ice.dom.is(trackNode, replaceSel)) {
+        dom.each(changes, function (i, node) {
+          dom.replaceWith(node, ice.dom.contents(node));
+        });
+      } else if (dom.is(trackNode, removeSel)) {
+        dom.remove(changes);
+      }
+    },
+
+    /**
+     * Returns true if the given `node`, or the current collapsed range is in a tracking
+     * node; otherwise, false.
+     */
+    isInsideChange: function (node) {
+      var selector = '.' + this._getIceNodeClass('insertType') + ', .' + this._getIceNodeClass('deleteType');
+      if (!node) {
+        range = this.getCurrentRange();
+        if (!range.collapsed) return false;
+        else node = range.startContainer;
+      }
+      return !!ice.dom.getNode(node, selector);
+    },
+
+    /**
+     * Add a new change tracking typeName with the given tag and alias.
+     */
+    addChangeType: function (typeName, tag, alias, action) {
+      var changeType = {
+        tag: tag,
+        alias: alias
+      };
+
+      if (action) changeType.action = action;
+
+      this.changeTypes[typeName] = changeType;
+    },
+
+    /**
+     * Returns this `node` or the first parent tracking node with the given `changeType`.
+     */
+    getIceNode: function (node, changeType) {
+      var selector = '.' + this._getIceNodeClass(changeType);
+      return ice.dom.getNode(node, selector);
+    },
+
+    /**
+     * Sets the given `range` to the first position, to the right, where it is outside of
+     * void elements.
+     */
+    _moveRangeToValidTrackingPos: function (range) {
+      var onEdge = false;
+      var voidEl = this._getVoidElement(range.endContainer);
+      while (voidEl) {
+        // Move end of range to position it inside of any potential adjacent containers
+        // E.G.:  test|<em>text</em>  ->  test<em>|text</em>
+        try {
+          range.moveEnd(ice.dom.CHARACTER_UNIT, 1);
+          range.moveEnd(ice.dom.CHARACTER_UNIT, -1);
+        } catch (e) {
+          // Moving outside of the element and nothing is left on the page
+          onEdge = true;
+        }
+        if (onEdge || ice.dom.onBlockBoundary(range.endContainer, range.startContainer, this.blockEls)) {
+          range.setStartAfter(voidEl);
+          range.collapse(true);
+          break;
+        }
+        voidEl = this._getVoidElement(range.endContainer);
+        if (voidEl) {
+          range.setEnd(range.endContainer, 0);
+      range.moveEnd(ice.dom.CHARACTER_UNIT, ice.dom.getNodeCharacterLength(range.endContainer));
+          range.collapse();
+        } else {
+          range.setStart(range.endContainer, 0);
+          range.collapse(true);
+        }
+      }
+    },
+
+    /**
+     * Returns the given `node` or the first parent node that matches against the list of no track elements.
+     */
+    _getNoTrackElement: function (node) {
+      var noTrackSelector = this._getNoTrackSelector();
+      var parent = ice.dom.is(node, noTrackSelector) ? node : (ice.dom.parents(node, noTrackSelector)[0] || null);
+      return parent;
+    },
+
+    /**
+     * Returns a selector for not tracking changes
+     */
+    _getNoTrackSelector: function () {
+      return this.noTrack;
+    },
+
+    /**
+     * Returns the given `node` or the first parent node that matches against the list of void elements.
+     */
+    _getVoidElement: function (node) {
+      var voidSelector = this._getVoidElSelector();
+      return ice.dom.is(node, voidSelector) ? node : (ice.dom.parents(node, voidSelector)[0] || null);
+    },
+
+    /**
+     * Returns a combined selector for delete and void elements.
+     */
+    _getVoidElSelector: function () {
+      return '.' + this._getIceNodeClass('deleteType') + ',' + this.avoid;
+    },
+
+    /**
+     * Returns true if node has a user id attribute that matches the current user id.
+     */
+    _currentUserIceNode: function (node) {
+      return ice.dom.attr(node, this.userIdAttribute) == this.currentUser.id;
+    },
+
+    /**
+     * With the given alias, searches the changeTypes objects and returns the
+     * associated key for the alias.
+     */
+    _getChangeTypeFromAlias: function (alias) {
+      var type, ctnType = null;
+      for (type in this.changeTypes) {
+        if (this.changeTypes.hasOwnProperty(type)) {
+          if (this.changeTypes[type].alias == alias) {
+            ctnType = type;
+          }
+        }
+      }
+
+      return ctnType;
+    },
+
+    _getIceNodeClass: function (changeType) {
+      return this.attrValuePrefix + this.changeTypes[changeType].alias;
+    },
+
+    getUserStyle: function (userid) {
+      var styleIndex = null;
+      if (this._userStyles[userid]) styleIndex = this._userStyles[userid];
+      else styleIndex = this.setUserStyle(userid, this.getNewStyleId());
+      return styleIndex;
+    },
+
+    setUserStyle: function (userid, styleIndex) {
+      var style = this.stylePrefix + '-' + styleIndex;
+      if (!this._styles[styleIndex]) this._styles[styleIndex] = true;
+      return this._userStyles[userid] = style;
+    },
+
+    getNewStyleId: function () {
+      var id = ++this._uniqueStyleIndex;
+      if (this._styles[id]) {
+        // Dupe.. create another..
+        return this.getNewStyleId();
+      } else {
+        this._styles[id] = true;
+        return id;
+      }
+    },
+
+    addChange: function (ctnType, ctNodes) {
+      var changeid = this._batchChangeid || this.getNewChangeId();
+      if (!this._changes[changeid]) {
+        // Create the change object.
+        this._changes[changeid] = {
+          type: this._getChangeTypeFromAlias(ctnType),
+          time: (new Date()).getTime(),
+          userid: this.currentUser.id,
+          username: this.currentUser.name
+        };
+      }
+      var self = this;
+      ice.dom.foreach(ctNodes, function (i) {
+        self.addNodeToChange(changeid, ctNodes[i]);
+      });
+
+      return changeid;
+    },
+
+    /**
+     * Adds tracking attributes from the change with changeid to the ctNode.
+     * @param changeid Id of an existing change.
+     * @param ctNode The element to add for the change.
+     */
+    addNodeToChange: function (changeid, ctNode) {
+      if (this._batchChangeid !== null) changeid = this._batchChangeid;
+
+      var change = this.getChange(changeid);
+
+      if (!ctNode.getAttribute(this.changeIdAttribute)) ctNode.setAttribute(this.changeIdAttribute, changeid);
+
+      if (!ctNode.getAttribute(this.userIdAttribute)) ctNode.setAttribute(this.userIdAttribute, change.userid);
+
+      if (!ctNode.getAttribute(this.userNameAttribute)) ctNode.setAttribute(this.userNameAttribute, change.username);
+
+      if (!ctNode.getAttribute(this.timeAttribute)) ctNode.setAttribute(this.timeAttribute, change.time);
+
+      if (!ice.dom.hasClass(ctNode, this._getIceNodeClass(change.type))) ice.dom.addClass(ctNode, this._getIceNodeClass(change.type));
+
+      var style = this.getUserStyle(change.userid);
+      if (!ice.dom.hasClass(ctNode, style)) ice.dom.addClass(ctNode, style);
+    },
+
+    getChange: function (changeid) {
+      var change = null;
+      if (this._changes[changeid]) {
+        change = this._changes[changeid];
+      }
+      return change;
+    },
+
+    getNewChangeId: function () {
+      var id = ++this._uniqueIDIndex;
+      if (this._changes[id]) {
+        // Dupe.. create another..
+        id = this.getNewChangeId();
+      }
+      return id;
+    },
+
+    startBatchChange: function () {
+      this._batchChangeid = this.getNewChangeId();
+      return this._batchChangeid;
+    },
+
+    endBatchChange: function (changeid) {
+      if (changeid !== this._batchChangeid) return;
+      this._batchChangeid = null;
+    },
+
+    getCurrentRange: function () {
+      return this.selection.getRangeAt(0);
+    },
+
+    _insertNode: function (node, range, insertingDummy) {
+      var origNode = node;
+      if (!ice.dom.isBlockElement(range.startContainer) && !ice.dom.canContainTextElement(ice.dom.getBlockParent(range.startContainer, this.element)) && range.startContainer.previousSibling) {
+        range.setStart(range.startContainer.previousSibling, 0);
+
+      }
+      var startContainer = range.startContainer;
+      var parentBlock = ice.dom.isBlockElement(range.startContainer) && range.startContainer || ice.dom.getBlockParent(range.startContainer, this.element) || null;
+      if (parentBlock === this.element) {
+        var firstPar = document.createElement(this.blockEl);
+        parentBlock.appendChild(firstPar);
+        range.setStart(firstPar, 0);
+        range.collapse();
+        return this._insertNode(node, range, insertingDummy);
+      }
+      if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
+        ice.dom.empty(parentBlock);
+        ice.dom.append(parentBlock, '<br>');
+        range.setStart(parentBlock, 0);
+      }
+
+      var ctNode = this.getIceNode(range.startContainer, 'insertType');
+      var inCurrentUserInsert = this._currentUserIceNode(ctNode);
+
+      // Do nothing, let this bubble-up to insertion handler.
+      if (insertingDummy && inCurrentUserInsert) return;
+      // If we aren't in an insert node which belongs to the current user, then create a new ins node
+      else if (!inCurrentUserInsert) node = this.createIceNode('insertType', node);
+
+      range.insertNode(node);
+      range.setEnd(node, 1);
+
+      if (insertingDummy) {
+        // Create a selection of the dummy character we inserted
+        // which will be removed after it bubbles up to the final handler.
+        range.setStart(node, 0);
+      } else {
+        range.collapse();
+      }
+
+      this.selection.addRange(range);
+    },
+
+    _handleVoidEl: function(el, range) {
+      // If `el` is or is in a void element, but not a delete
+      // then collapse the `range` and return `true`.
+      var voidEl = this._getVoidElement(el);
+      if (voidEl && !this.getIceNode(voidEl, 'deleteType')) {
+        range.collapse(true);
+        return true;
+      }
+      return false;
+    },
+
+    _deleteSelection: function (range) {
+
+      // Bookmark the range and get elements between.
+      var bookmark = new ice.Bookmark(this.env, range),
+        elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
+        b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
+        b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
+        betweenBlocks = new Array(); 
+
+      for (var i = 0; i < elements.length; i++) {
+        var elem = elements[i];
+        if (ice.dom.isBlockElement(elem)) {
+          betweenBlocks.push(elem);
+          if (!ice.dom.canContainTextElement(elem)) {
+            // Ignore containers that are not supposed to contain text. Check children instead.
+            for (var k = 0; k < elem.childNodes.length; k++) {
+              elements.push(elem.childNodes[k]);
+            }
+            continue;
+          }
+        }
+        // Ignore empty space nodes
+        if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
+
+        if (!this._getVoidElement(elem)) {
+          // If the element is not a text or stub node, go deeper and check the children.
+          if (elem.nodeType !== ice.dom.TEXT_NODE) {
+            // Browsers like to insert breaks into empty paragraphs - remove them
+            if (ice.dom.BREAK_ELEMENT == ice.dom.getTagName(elem)) {
+              continue;
+            }
+
+            if (ice.dom.isStubElement(elem)) {
+              this._addNodeTracking(elem, false, true);
+              continue;
+            }
+            if (ice.dom.hasNoTextOrStubContent(elem)) {
+              ice.dom.remove(elem);
+            }
+
+            for (j = 0; j < elem.childNodes.length; j++) {
+              var child = elem.childNodes[j];
+              elements.push(child);
+            }
+            continue;
+          }
+          var parentBlock = ice.dom.getBlockParent(elem);
+          this._addNodeTracking(elem, false, true, true);
+          if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
+            ice.dom.remove(parentBlock);
+          }
+        }
+      }
+
+      if (this.mergeBlocks && b1 !== b2) {
+        while (betweenBlocks.length)
+          ice.dom.mergeContainers(betweenBlocks.shift(), b1);
+        ice.dom.removeBRFromChild(b2);
+        ice.dom.removeBRFromChild(b1);
+        ice.dom.mergeContainers(b2, b1);
+      }
+
+      bookmark.selectBookmark();
+//      range.collapse(false);
+  range.collapse(true);
+    },
+
+    // Delete
+    _deleteRight: function (range) {
+
+      var parentBlock = ice.dom.isBlockElement(range.startContainer) && range.startContainer || ice.dom.getBlockParent(range.startContainer, this.element) || null,
+        isEmptyBlock = parentBlock ? (ice.dom.hasNoTextOrStubContent(parentBlock)) : false,
+        nextBlock = parentBlock && ice.dom.getNextContentNode(parentBlock, this.element),
+        nextBlockIsEmpty = nextBlock ? (ice.dom.hasNoTextOrStubContent(nextBlock)) : false,
+        initialContainer = range.endContainer,
+        initialOffset = range.endOffset,
+        commonAncestor = range.commonAncestorContainer,
+        nextContainer, returnValue;
+
+      // If the current block is empty then let the browser handle the delete/event.
+      if (isEmptyBlock) return false;
+
+      // Some bugs in Firefox and Webkit make the caret disappear out of text nodes, so we try to put them back in.
+      if (commonAncestor.nodeType !== ice.dom.TEXT_NODE) {
+
+        // If placed at the beginning of a container that cannot contain text, such as an ul element, place the caret at the beginning of the first item.
+        if (initialOffset === 0 && ice.dom.isBlockElement(commonAncestor) && (!ice.dom.canContainTextElement(commonAncestor))) {
+          var firstItem = commonAncestor.firstElementChild;
+          if (firstItem) {
+            range.setStart(firstItem, 0);
+            range.collapse();
+            return this._deleteRight(range);
+          }
+        }
+
+        if (commonAncestor.childNodes.length > initialOffset) {
+          var tempTextContainer = document.createTextNode(' ');
+          commonAncestor.insertBefore(tempTextContainer, commonAncestor.childNodes[initialOffset]);
+          range.setStart(tempTextContainer, 1);
+          range.collapse(true);
+          returnValue = this._deleteRight(range);
+          ice.dom.remove(tempTextContainer);
+          return returnValue;
+        } else {
+          nextContainer = ice.dom.getNextContentNode(commonAncestor, this.element);
+          range.setEnd(nextContainer, 0);
+          range.collapse();
+          return this._deleteRight(range);
+        }
+      }
+
+      // Move range to position the cursor on the inside of any adjacent container that it is going
+      // to potentially delete into or after a stub element.  E.G.:  test|<em>text</em>  ->  test<em>|text</em> or
+      // text1 |<img> text2 -> text1 <img>| text2
+
+      // Merge blocks: If mergeBlocks is enabled, merge the previous and current block.
+      range.moveEnd(ice.dom.CHARACTER_UNIT, 1);
+      range.moveEnd(ice.dom.CHARACTER_UNIT, -1);
+
+      // Handle cases of the caret is at the end of a container or placed directly in a block element
+      if (initialOffset === initialContainer.data.length && (!ice.dom.hasNoTextOrStubContent(initialContainer))) {
+        nextContainer = ice.dom.getNextNode(initialContainer, this.element);
+
+        // If the next container is outside of ICE then do nothing.
+        if (!nextContainer) {
+          range.selectNodeContents(initialContainer);
+          range.collapse();
+          return false;
+        }
+
+        // If the next container is <br> element find the next node
+        if (ice.dom.BREAK_ELEMENT == ice.dom.getTagName(nextContainer)) {
+          nextContainer = ice.dom.getNextNode(nextContainer, this.element);
+        }
+        // If the next container is a text node, look at the parent node instead.
+        if (nextContainer.nodeType === ice.dom.TEXT_NODE) {
+          nextContainer = nextContainer.parentNode;
+        }
+
+        // If the next container is non-editable, enclose it with a delete ice node and add an empty text node after it to position the caret.
+        if (!nextContainer.isContentEditable) {
+          returnValue = this._addNodeTracking(nextContainer, false, false);
+          var emptySpaceNode = document.createTextNode('');
+          nextContainer.parentNode.insertBefore(emptySpaceNode, nextContainer.nextSibling);
+          range.selectNode(emptySpaceNode);
+          range.collapse(true);
+          return returnValue;
+        }
+
+        if (this._handleVoidEl(nextContainer, range)) return true;
+
+        // If the caret was placed directly before a stub element, enclose the element with a delete ice node.
+        if (ice.dom.isChildOf(nextContainer, parentBlock) && ice.dom.isStubElement(nextContainer)) {
+          return this._addNodeTracking(nextContainer, range, false);
+        }
+
+      }
+
+      if (this._handleVoidEl(nextContainer, range)) return true;
+
+      // If we are deleting into a no tracking containiner, then remove the content
+      if (this._getNoTrackElement(range.endContainer.parentElement)) {
+        range.deleteContents();
+        return false;
+      }
+
+      if (ice.dom.isOnBlockBoundary(range.startContainer, range.endContainer, this.element)) {
+        if (this.mergeBlocks && ice.dom.is(ice.dom.getBlockParent(nextContainer, this.element), this.blockEl)) {
+          // Since the range is moved by character, it may have passed through empty blocks.
+          // <p>text {RANGE.START}</p><p></p><p>{RANGE.END} text</p>
+          if (nextBlock !== ice.dom.getBlockParent(range.endContainer, this.element)) {
+            range.setEnd(nextBlock, 0);
+          }
+          // The browsers like to auto-insert breaks into empty paragraphs - remove them.
+          var elements = ice.dom.getElementsBetween(range.startContainer, range.endContainer);
+          for (var i = 0; i < elements.length; i++) {
+            ice.dom.remove(elements[i]);
+          }
+          var startContainer = range.startContainer;
+          var endContainer = range.endContainer;
+          ice.dom.remove(ice.dom.find(startContainer, 'br'));
+          ice.dom.remove(ice.dom.find(endContainer, 'br'));
+          return ice.dom.mergeBlockWithSibling(range, ice.dom.getBlockParent(range.endContainer, this.element) || parentBlock);
+        } else {
+          // If the next block is empty, remove the next block.
+          if (nextBlockIsEmpty) {
+            ice.dom.remove(nextBlock);
+            range.collapse(true);
+            return true;
+          }
+
+          // Place the caret at the start of the next block.
+          range.setStart(nextBlock, 0);
+          range.collapse(true);
+          return true;
+        }
+      }
+
+      var entireTextNode = range.endContainer;
+      var deletedCharacter = entireTextNode.splitText(range.endOffset);
+      var remainingTextNode = deletedCharacter.splitText(1);
+
+      return this._addNodeTracking(deletedCharacter, range, false);
+
+    },
+
+    // Backspace
+    _deleteLeft: function (range) {
+
+      var parentBlock = ice.dom.isBlockElement(range.startContainer) && range.startContainer || ice.dom.getBlockParent(range.startContainer, this.element) || null,
+        isEmptyBlock = parentBlock ? ice.dom.hasNoTextOrStubContent(parentBlock) : false,
+        prevBlock = parentBlock && ice.dom.getPrevContentNode(parentBlock, this.element), // || ice.dom.getBlockParent(parentBlock, this.element) || null,
+        prevBlockIsEmpty = prevBlock ? ice.dom.hasNoTextOrStubContent(prevBlock) : false,
+        initialContainer = range.startContainer,
+        initialOffset = range.startOffset,
+        commonAncestor = range.commonAncestorContainer,
+        lastSelectable, prevContainer;
+      // If the current block is empty, then let the browser handle the key/event.
+      if (isEmptyBlock) return false;
+
+      // Handle cases of the caret is at the start of a container or outside a text node
+      if (initialOffset === 0 || commonAncestor.nodeType !== ice.dom.TEXT_NODE) {
+        // If placed at the end of a container that cannot contain text, such as an ul element, place the caret at the end of the last item.
+        if (ice.dom.isBlockElement(commonAncestor) && (!ice.dom.canContainTextElement(commonAncestor))) {
+          if (initialOffset === 0) {
+            var firstItem = commonAncestor.firstElementChild;
+            if (firstItem) {
+              range.setStart(firstItem, 0);
+              range.collapse();
+              return this._deleteLeft(range);
+            }
+
+          } else {
+            var lastItem = commonAncestor.lastElementChild;
+            if (lastItem) {
+
+              lastSelectable = range.getLastSelectableChild(lastItem);
+              if (lastSelectable) {
+                range.setStart(lastSelectable, lastSelectable.data.length);
+                range.collapse();
+                return this._deleteLeft(range);
+              }
+            }
+          }
+        }
+        if (initialOffset === 0) {
+          prevContainer = ice.dom.getPrevContentNode(initialContainer, this.element);
+        } else {
+        var newOffset = initialOffset;
+      var style;
+//      while(newOffset > 0){
+//        prevContainer = commonAncestor.childNodes[--newOffset];
+//        if(!ice.dom.hasClass(prevContainer, "del")) break;
+//        prevContainer = null;
+//      }
+      prevContainer = commonAncestor.childNodes[initialOffset-1];
+        }
+
+        // If the previous container is outside of ICE then do nothing.
+        if (!prevContainer) {
+          return false;
+        }
+        // Firefox finds an ice node wrapped around an image instead of the image itself sometimes, so we make sure to look at the image instead.
+        if (ice.dom.is(prevContainer,  '.' + this._getIceNodeClass('insertType') + ', .' + this._getIceNodeClass('deleteType')) && prevContainer.childNodes.length > 0 && prevContainer.lastChild) {
+          prevContainer = prevContainer.lastChild;
+        }
+
+        // If the previous container is a text node, look at the parent node instead.
+        if (prevContainer.nodeType === ice.dom.TEXT_NODE) {
+          prevContainer = prevContainer.parentNode;
+        }
+
+        // If the previous container is non-editable, enclose it with a delete ice node and add an empty text node before it to position the caret.
+        if (!prevContainer.isContentEditable) {
+          var returnValue = this._addNodeTracking(prevContainer, false, true);
+          var emptySpaceNode = document.createTextNode('');
+          prevContainer.parentNode.insertBefore(emptySpaceNode, prevContainer);
+          range.selectNode(emptySpaceNode);
+          range.collapse(true);
+          return returnValue;
+        }
+
+        if (this._handleVoidEl(prevContainer, range)) return true;
+
+        // If the caret was placed directly after a stub element, enclose the element with a delete ice node.
+        if (ice.dom.isStubElement(prevContainer) && ice.dom.isChildOf(prevContainer, parentBlock) || !prevContainer.isContentEditable) {
+           return this._addNodeTracking(prevContainer, range, true);
+        }
+
+        // If the previous container is a stub element between blocks
+        // then just delete and leave the range/cursor in place.
+        if (ice.dom.isStubElement(prevContainer)) {
+          ice.dom.remove(prevContainer);
+          range.collapse(true);
+          return false;
+        }
+
+        if (prevContainer !== parentBlock && !ice.dom.isChildOf(prevContainer, parentBlock)) {
+
+          if (!ice.dom.canContainTextElement(prevContainer)) {
+            prevContainer = prevContainer.lastElementChild;
+          }
+          // Before putting the caret into the last selectable child, lets see if the last element is a stub element. If it is, we need to put the caret there manually.
+          if (prevContainer.lastChild && prevContainer.lastChild.nodeType !== ice.dom.TEXT_NODE && ice.dom.isStubElement(prevContainer.lastChild) && prevContainer.lastChild.tagName !== 'BR') {
+            range.setStartAfter(prevContainer.lastChild);
+            range.collapse(true);
+            return true;
+          }
+          // Find the last selectable part of the prevContainer. If it exists, put the caret there.
+          lastSelectable = range.getLastSelectableChild(prevContainer);
+
+          if (lastSelectable && !ice.dom.isOnBlockBoundary(range.startContainer, lastSelectable, this.element)) {
+            range.selectNodeContents(lastSelectable);
+            range.collapse();
+            return true;
+          }
+        }
+      }
+
+      // Firefox: If an image is at the start of the paragraph and the user has just deleted the image using backspace, an empty text node is created in the delete node before
+      // the image, but the caret is placed with the image. We move the caret to the empty text node and execute deleteFromLeft again.
+      if (initialOffset === 1 && !ice.dom.isBlockElement(commonAncestor) && range.startContainer.childNodes.length > 1 && range.startContainer.childNodes[0].nodeType === ice.dom.TEXT_NODE && range.startContainer.childNodes[0].data.length === 0) {
+        range.setStart(range.startContainer, 0);
+        return this._deleteLeft(range);
+      }
+
+      // Move range to position the cursor on the inside of any adjacent container that it is going
+      // to potentially delete into or before a stub element.  E.G.: <em>text</em>| test  ->  <em>text|</em> test or
+      // text1 <img>| text2 -> text1 |<img> text2
+      range.moveStart(ice.dom.CHARACTER_UNIT, -1);
+      range.moveStart(ice.dom.CHARACTER_UNIT, 1);
+
+      // If we are deleting into a no tracking containiner, then remove the content
+      if (this._getNoTrackElement(range.startContainer.parentElement)) {
+        range.deleteContents();
+        return false;
+      }
+
+      // Handles cases in which the caret is at the start of the block.
+      if (ice.dom.isOnBlockBoundary(range.startContainer, range.endContainer, this.element)) {
+
+        // If the previous block is empty, remove the previous block.
+        if (prevBlockIsEmpty) {
+          ice.dom.remove(prevBlock);
+          range.collapse();
+          return true;
+        }
+
+        // Merge blocks: If mergeBlocks is enabled, merge the previous and current block.
+        if (this.mergeBlocks && ice.dom.is(ice.dom.getBlockParent(prevContainer, this.element), this.blockEl)) {
+          // Since the range is moved by character, it may have passed through empty blocks.
+          // <p>text {RANGE.START}</p><p></p><p>{RANGE.END} text</p>
+          if (prevBlock !== ice.dom.getBlockParent(range.startContainer, this.element)) {
+            range.setStart(prevBlock, prevBlock.childNodes.length);
+          }
+          // The browsers like to auto-insert breaks into empty paragraphs - remove them.
+          var elements = ice.dom.getElementsBetween(range.startContainer, range.endContainer)
+          for (var i = 0; i < elements.length; i++) {
+            ice.dom.remove(elements[i]);
+          }
+          var startContainer = range.startContainer;
+          var endContainer = range.endContainer;
+          ice.dom.remove(ice.dom.find(startContainer, 'br'));
+          ice.dom.remove(ice.dom.find(endContainer, 'br'));
+          return ice.dom.mergeBlockWithSibling(range, ice.dom.getBlockParent(range.endContainer, this.element) || parentBlock);
+        }
+
+        // If the previous Block ends with a stub element, set the caret behind it.
+        if (prevBlock && prevBlock.lastChild && ice.dom.isStubElement(prevBlock.lastChild)) {
+          range.setStartAfter(prevBlock.lastChild);
+          range.collapse(true);
+          return true;
+        }
+
+        // Place the caret at the end of the previous block.
+        lastSelectable = range.getLastSelectableChild(prevBlock);
+        if (lastSelectable) {
+          range.setStart(lastSelectable, lastSelectable.data.length);
+          range.collapse(true);
+        } else if (prevBlock) {
+          range.setStart(prevBlock, prevBlock.childNodes.length);
+          range.collapse(true);
+        }
+
+        return true;
+      }
+
+      var entireTextNode = range.startContainer;
+      var deletedCharacter = entireTextNode.splitText(range.startOffset - 1);
+      var remainingTextNode = deletedCharacter.splitText(1);
+
+      return this._addNodeTracking(deletedCharacter, range, true);
+
+    },
+
+    // Marks text and other nodes for deletion
+    _addNodeTracking: function (contentNode, range, moveLeft) {		
+		var contentAddNode = this.getIceNode(contentNode, 'insertType');	  
+      if (contentAddNode && this._currentUserIceNode(contentAddNode)) {		  
+        if (range && moveLeft) {
+          range.selectNode(contentNode);
+        }
+        contentNode.parentNode.removeChild(contentNode);
+        var cleanNode = ice.dom.cloneNode(contentAddNode);
+        ice.dom.remove(ice.dom.find(cleanNode, '.iceBookmark'));
+        // Remove a potential empty tracking container
+        if (contentAddNode !== null && (ice.dom.hasNoTextOrStubContent(cleanNode[0]))) {
+          var newstart = this.env.document.createTextNode('');
+          ice.dom.insertBefore(contentAddNode, newstart);
+          if (range) {
+            range.setStart(newstart, 0);
+            range.collapse(true);
+          }
+          ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));
+        }
+
+        return true;
+		
+      } else if (range && this.getIceNode(contentNode, 'deleteType')) {		  
+        // It if the contentNode a text node, unite it with text nodes before and after it.
+        contentNode.normalize();
+
+        var found = false;
+        if (moveLeft) {
+          // Move to the left until there is valid sibling.
+          var previousSibling = ice.dom.getPrevContentNode(contentNode, this.element);
+          while (!found) {
+            ctNode = this.getIceNode(previousSibling, 'deleteType');
+            if (!ctNode) {
+              found = true;
+            } else {
+              previousSibling = ice.dom.getPrevContentNode(previousSibling, this.element);
+            }
+          }
+          if (previousSibling) {
+            var lastSelectable = range.getLastSelectableChild(previousSibling);
+            if (lastSelectable) {
+              previousSibling = lastSelectable;
+            }
+            range.setStart(previousSibling, ice.dom.getNodeCharacterLength(previousSibling));
+            range.collapse(true);
+          }
+          return true;
+        } else {
+          // Move the range to the right until there is valid sibling.
+
+          var nextSibling = ice.dom.getNextContentNode(contentNode, this.element);
+          while (!found) {
+            ctNode = this.getIceNode(nextSibling, 'deleteType');
+            if (!ctNode) {
+              found = true;
+            } else {
+              nextSibling = ice.dom.getNextContentNode(nextSibling, this.element);
+            }
+          }
+
+          if (nextSibling) {
+            range.selectNodeContents(nextSibling);
+            range.collapse(true);
+          }
+          return true;
+        }
+
+      }	  
+	  
+      // Webkit likes to insert empty text nodes next to elements. We remove them here.
+      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.previousSibling);
+      }
+      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
+        contentNode.parentNode.removeChild(contentNode.nextSibling);
+      }
+      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'deleteType');
+      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'deleteType');
+      var ctNode;
+
+      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {
+        ctNode = prevDelNode;
+        ctNode.appendChild(contentNode);
+        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+          var nextDelContents = ice.dom.extractContent(nextDelNode);
+          ice.dom.append(ctNode, nextDelContents);
+          nextDelNode.parentNode.removeChild(nextDelNode);
+        }
+      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
+        ctNode = nextDelNode;
+        ctNode.insertBefore(contentNode, ctNode.firstChild);
+      } else {
+        ctNode = this.createIceNode('deleteType');
+        contentNode.parentNode.insertBefore(ctNode, contentNode);
+        ctNode.appendChild(contentNode);
+      }
+
+      if (range) {
+        if (ice.dom.isStubElement(contentNode)) {
+          range.selectNode(contentNode);
+        } else {
+          range.selectNodeContents(contentNode);
+        }
+        if (moveLeft) {
+          range.collapse(true);
+        } else {
+          range.collapse();
+        }
+        contentNode.normalize();
+      }
+      return true;
+
+    },	
+	
+    /**
+     * Handles arrow, delete key events, and others.
+     *
+     * @param {event} e The event object.
+     * return {void|boolean} Returns false if default event needs to be blocked.
+     */
+    _handleAncillaryKey: function (e) {
+      var key = e.keyCode ? e.keyCode : e.which;
+      var browser = ice.dom.browser();
+      var preventDefault = true;
+      var shiftKey = e.shiftKey;
+      var self = this;
+      var range = self.getCurrentRange();	  
+      switch (key) {
+        case ice.dom.DOM_VK_DELETE:
+          preventDefault = this.deleteContents();
+          this.pluginsManager.fireKeyPressed(e);
+          break;
+        case 46:
+          // Key 46 is the DELETE key.
+          preventDefault = this.deleteContents(true);
+          this.pluginsManager.fireKeyPressed(e);
+          break;
+
+        /************************************************************************************/
+        /** BEGIN: Handling of caret movements inside hidden .ins/.del elements on Firefox **/
+        /**  *Fix for carets getting stuck in .del elements when track changes are hidden  **/
+        case ice.dom.DOM_VK_DOWN:
+        case ice.dom.DOM_VK_UP:
+        case ice.dom.DOM_VK_LEFT:
+          this.pluginsManager.fireCaretPositioned();
+          if (browser["type"] === "mozilla") {
+            if (!this.visible(range.startContainer)) {
+              // if Previous sibling exists in the paragraph, jump to the previous sibling
+              if(range.startContainer.parentNode.previousSibling) {
+                // When moving left and moving into a hidden element, skip it and go to the previousSibling
+                range.setEnd(range.startContainer.parentNode.previousSibling, 0);
+                range.moveEnd(ice.dom.CHARACTER_UNIT, ice.dom.getNodeCharacterLength(range.endContainer));
+                range.collapse(false);
+              }
+              // if Previous sibling doesn't exist, get out of the hidden zone by moving to the right
+              else {
+                range.setEnd(range.startContainer.parentNode.nextSibling, 0);
+                range.collapse(false);
+              }
+            }
+          }
+          preventDefault = false;
+          break;
+        case ice.dom.DOM_VK_RIGHT:
+          this.pluginsManager.fireCaretPositioned();
+          if (browser["type"] === "mozilla") {
+            if (!this.visible(range.startContainer)) {
+              if(range.startContainer.parentNode.nextSibling) {
+                // When moving right and moving into a hidden element, skip it and go to the nextSibling
+                range.setStart(range.startContainer.parentNode.nextSibling,0);
+                range.collapse(true);
+              }
+            }
+          }
+          preventDefault = false;
+          break;
+        /** END: Handling of caret movements inside hidden .ins/.del elements ***************/
+        /************************************************************************************/
+
+        case 32:
+          preventDefault = true;
+          var range = this.getCurrentRange();
+          this._moveRangeToValidTrackingPos(range, range.startContainer);
+          this.insert('\u00A0' , range);
+          break;
+        default:
+          // Ignore key.
+          preventDefault = false;
+          break;
+      } //end switch
+
+      if (preventDefault === true) {
+        ice.dom.preventDefault(e);
+        return false;
+      }
+      return true;
+    },
+
+    keyDown: function (e) {		
+      if (!this.pluginsManager.fireKeyDown(e)) {
+        ice.dom.preventDefault(e);
+        return false;
+      }
+      var preventDefault = false;
+
+      if (this._handleSpecialKey(e) === false) {
+        if (ice.dom.isBrowser('msie') !== true) {
+          this._preventKeyPress = true;
+        }
+
+        return false;
+      } else if ((e.ctrlKey === true || e.metaKey === true) && (ice.dom.isBrowser('msie') === true || ice.dom.isBrowser('chrome') === true)) {
+        // IE does not fire keyPress event if ctrl is also pressed.
+        // E.g. CTRL + B (Bold) will not fire keyPress so this.plugins
+        // needs to be notified here for IE.
+        if (!this.pluginsManager.fireKeyPressed(e)) {
+          return false;
+        }
+      }
+      switch (e.keyCode) {
+        case 27:
+          // ESC
+          break;
+        default:
+          // If not Firefox then check if event is special arrow key etc.
+          // Firefox will handle this in keyPress event.
+          if (/Firefox/.test(navigator.userAgent) !== true) {
+            preventDefault = !(this._handleAncillaryKey(e));
+          }
+          break;
+      }
+
+      if (preventDefault) {
+        ice.dom.preventDefault(e);
+        return false;
+      }
+      return true;
+    },
+
+    keyPress: function (e) {
+      if (this._preventKeyPress === true) {
+        this._preventKeyPress = false;
+        return;
+      }
+      
+      if (!this.pluginsManager.fireKeyPress(e)) return false;
+
+      var c = null;
+      if (e.which == null) {
+        // IE.
+        c = String.fromCharCode(e.keyCode);
+      } else if (e.which > 0) {
+        c = String.fromCharCode(e.which);
+      }
+
+      // Inside a br - most likely in a placeholder of a new block - delete before handling.
+      var range = this.getCurrentRange();
+      var br = ice.dom.parents(range.startContainer, 'br')[0] || null;
+      if (br) {
+        range.moveToNextEl(br);
+        br.parentNode.removeChild(br);
+      }
+
+      // Ice will ignore the keyPress event if CMD or CTRL key is also pressed
+      if (c !== null && e.ctrlKey !== true && e.metaKey !== true) {
+        var key = e.keyCode ? e.keyCode : e.which;		
+        switch (key) {
+          case ice.dom.DOM_VK_DELETE:
+            // Handle delete key for Firefox.
+            return this._handleAncillaryKey(e);
+          case ice.dom.DOM_VK_ENTER:
+            return this._handleEnter();
+          case 32:
+            return this._handleAncillaryKey(e);
+          default:
+            // If we are in a deletion, move the range to the end/outside.
+            this._moveRangeToValidTrackingPos(range, range.startContainer);
+            return this.insert();
+        }
+      }
+
+      return this._handleAncillaryKey(e);
+    },
+
+    _handleEnter: function () {
+      var range = this.getCurrentRange();
+      if (!range.collapsed) this.deleteContents();
+      return true;
+    },
+
+    _handleSpecialKey: function (e) {
+      var keyCode = e.which;
+      if (keyCode === null) {
+        // IE.
+        keyCode = e.keyCode;
+      }
+
+      var preventDefault = false;
+      switch (keyCode) {
+        case 65:
+          // Check for CTRL/CMD + A (select all).
+          if (e.ctrlKey === true || e.metaKey === true) {
+            preventDefault = true;
+            var range = this.getCurrentRange();
+
+            if (ice.dom.isBrowser('msie') === true) {
+              var selStart = this.env.document.createTextNode('');
+              var selEnd = this.env.document.createTextNode('');
+
+              if (this.element.firstChild) {
+                ice.dom.insertBefore(this.element.firstChild, selStart);
+              } else {
+                this.element.appendChild(selStart);
+              }
+
+              this.element.appendChild(selEnd);
+
+              range.setStart(selStart, 0);
+              range.setEnd(selEnd, 0);
+            } else {
+              range.setStart(range.getFirstSelectableChild(this.element), 0);
+              var lastSelectable = range.getLastSelectableChild(this.element);
+              range.setEnd(lastSelectable, lastSelectable.length);
+            } //end if
+
+            this.selection.addRange(range);
+          } //end if
+          break;
+		  //*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************//
+			case 66:
+			// Check for CTRL + B (bold a text)
+			if(e.ctrlKey === true || e.metaKey === true) {				
+				preventDefault = true;
+					var range = this.getCurrentRange();				
+			this._moveRangeToValidTrackingPos(range, range.startContainer);
+				  //this.insert('\u00A0' , range);
+				  this.insertBold('\u00A0' , range);
+			}
+			break;		 
+		  
+		  //*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************//
+			case 73:
+			// Check for CTRL + I (Italic a text)
+			if(e.ctrlKey === true || e.metaKey === true) {				
+				preventDefault = true;
+					var range = this.getCurrentRange();				
+			this._moveRangeToValidTrackingPos(range, range.startContainer);
+				  //this.insert('\u00A0' , range);
+				  this.insertItalic('\u00A0' , range);
+			}
+			break;		  
+		  
+		  //*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************//
+			case 85:
+			// Check for CTRL + U (bold a text)
+			if(e.ctrlKey === true || e.metaKey === true) {				
+				preventDefault = true;
+					var range = this.getCurrentRange();				
+			this._moveRangeToValidTrackingPos(range, range.startContainer);
+				  //this.insert('\u00A0' , range);
+				  this.insertUnderline('\u00A0' , range);
+			}
+		  //*************INNOBLITZ CHANGES FOR TRACKING CTRL+B, CTRL+I, CTRL+U CHANGE******************************
+        default:
+          // Not a special key.
+          break;
+      } //end switch
+
+      if (preventDefault === true) {
+        ice.dom.preventDefault(e);
+        return false;
+      }
+
+      return true;
+    },
+
+    mouseUp: function (e, target) {
+      if (!this.pluginsManager.fireClicked(e)) return false;
+      this.pluginsManager.fireSelectionChanged(this.getCurrentRange());
+    },
+
+    mouseDown: function (e, target) {
+      if (!this.pluginsManager.fireMouseDown(e)) return false;
+      this.pluginsManager.fireCaretUpdated();
+    }
+  };
+
+  exports.ice = this.ice || {};
+  exports.ice.InlineChangeEditor = InlineChangeEditor;
+
+}).call(this);
