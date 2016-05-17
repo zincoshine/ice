@@ -396,7 +396,7 @@
 		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {						
 			var boldSel = '.' + this._getIceNodeClass('boldType');
 			ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
-				ice.dom.replaceWith(el, ice.dom.contents(el));
+				ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));
 			 });
 			 //ice.dom.remove(ice.dom.find(this.element, boldSel));
           return true;
@@ -527,7 +527,7 @@
 		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {		
 			var italicSel = '.' + this._getIceNodeClass('italicType');
 			ice.dom.each(ice.dom.find(this.element, italicSel), function (i, el) {
-				ice.dom.replaceWith(el, ice.dom.contents(el));
+				ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));
 			 });					
         return true;		
       }
@@ -654,7 +654,7 @@
 		
 			var underlineSel = '.' + this._getIceNodeClass('underlineType');
 			ice.dom.each(ice.dom.find(this.element, underlineSel), function (i, el) {
-				ice.dom.replaceWith(el, ice.dom.contents(el));
+				ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));
 			 });
 					
         return true;		
