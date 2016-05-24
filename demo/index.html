@@ -50,9 +50,9 @@
 			<div>
 				<div class="control">
 					<strong>Style:</strong>
-					<button onclick="boldBtn('bold', null, false);"><strong>B</strong></button>
-					<button onclick="boldBtn('italic', null, false);"><em>i</em></button>
-					<button onclick="boldBtn('underline', null, false);"><u>u</u></button>
+					<button onclick="formatBtn('bold', null, false);"><strong>B</strong></button>
+					<button onclick="formatBtn('italic', null, false);"><em>i</em></button>
+					<button onclick="formatBtn('underline', null, false);"><u>u</u></button>
 				</div>
 				<div class="control">
 					<strong>Indent:</strong>
@@ -129,15 +129,13 @@
 			tracker.setCurrentUser({id: id, name: name});
 		}
 		
-		function boldBtn(u,r,x,m){			
-			if(u=='bold'){
-				var range = tracker.getCurrentRange();
+		function formatBtn(u,r,x,m){
+			var range = tracker.getCurrentRange();			
+			if(u=='bold'){				
 				tracker.insertBold('\u00A0' , range);
-			}else if(u=='italic'){
-				var range = tracker.getCurrentRange();
+			}else if(u=='italic'){				
 				tracker.insertItalic('\u00A0' , range);
-			}else if(u=='underline'){
-				var range = tracker.getCurrentRange();
+			}else if(u=='underline'){				
 				tracker.insertUnderline('\u00A0' , range);
 			}
 		}
