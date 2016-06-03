@@ -396,25 +396,33 @@
 				var boldSel = '.' + this._getIceNodeClass('boldType');
 				var index = contentAddNode.textContent.indexOf(rangeTxt);		
 				ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
-				var index = contentAddNode.textContent.indexOf(rangeTxt);				
-				 if(index!=-1){
-					 var startNode = _self.createIceNode('boldType');
-					 var middleNode = document.createTextNode(rangeTxt);
-					 var endNode = _self.createIceNode('boldType');
-					 ice.dom.setNodeTextContent(startNode, contentAddNode.textContent.substr(0, index-1));
-					 var endNodeCnt = contentAddNode.textContent.substr(index, contentAddNode.textContent.length).replace(rangeTxt, "");
-					 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(1, endNodeCnt.length));
-					 ice.dom.setNodeTextContent(middleNode, rangeTxt);
-					 ice.dom.replaceWith(contentAddNode, startNode);	
-					 ice.dom.insertAfter(startNode, middleNode);
-					 ice.dom.insertAfter(middleNode, endNode);
-				 } else {
-					ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));
-				 }
-			 });
-			 //ice.dom.remove(ice.dom.find(this.element, boldSel));
-          return true;
-		  		
+					 var index = contentAddNode.textContent.indexOf(rangeTxt);				
+					 if(index!=-1){
+						 var startNode = _self.createIceNode('boldType');
+						 var middleNode = document.createTextNode(rangeTxt);
+						 var endNode = _self.createIceNode('boldType');
+						 ice.dom.setNodeTextContent(startNode, contentAddNode.textContent.substr(0, index-1));
+						 var endNodeCnt = contentAddNode.textContent.substr(index, contentAddNode.textContent.length).replace(rangeTxt, "");
+						 var startIndex = 1;
+						 if(ice.dom.trim(endNodeCnt.substr(0,1))!="") {
+							 startIndex = 0;
+						 }
+						 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(startIndex, endNodeCnt.length));
+						 ice.dom.setNodeTextContent(middleNode, rangeTxt);
+						 ice.dom.replaceWith(contentAddNode, startNode);	
+						 ice.dom.insertAfter(startNode, middleNode);
+						 ice.dom.insertAfter(middleNode, endNode);
+					 } else {
+						ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));	
+					 }
+					 
+			    });
+				ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
+					 if(ice.dom.trim(el.innerHTML)=="") {
+						ice.dom.replaceWith(el, ice.dom.contents(el));
+					 }
+				});
+          return true;		
       }
 				
 		// Webkit likes to insert empty text nodes next to elements. We bold them here.
@@ -538,22 +546,32 @@
 		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {		
 		 var italicSel = '.' + this._getIceNodeClass('italicType');
 		 ice.dom.each(ice.dom.find(this.element, italicSel), function (i, el) {
-			 var index = contentAddNode.textContent.indexOf(rangeTxt);	
-			 if(index!=-1){
-				 var startNode = _self.createIceNode('italicType');
-				 var middleNode = document.createTextNode(rangeTxt);
-				 var endNode = _self.createIceNode('italicType');
-				 ice.dom.setNodeTextContent(startNode, contentAddNode.textContent.substr(0, index-1));
-				 var endNodeCnt = contentAddNode.textContent.substr(index, contentAddNode.textContent.length).replace(rangeTxt, "");
-				 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(1, endNodeCnt.length));
-				 ice.dom.setNodeTextContent(middleNode, rangeTxt);
-				 ice.dom.replaceWith(contentAddNode, startNode);	
-				 ice.dom.insertAfter(startNode, middleNode);
-				 ice.dom.insertAfter(middleNode, endNode);
-			 } else {
-				ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));
+				 var index = contentAddNode.textContent.indexOf(rangeTxt);				
+				 if(index!=-1){
+					 var startNode = _self.createIceNode('italicType');
+					 var middleNode = document.createTextNode(rangeTxt);
+					 var endNode = _self.createIceNode('italicType');
+					 ice.dom.setNodeTextContent(startNode, contentAddNode.textContent.substr(0, index-1));
+					 var endNodeCnt = contentAddNode.textContent.substr(index, contentAddNode.textContent.length).replace(rangeTxt, "");
+					 var startIndex = 1;
+					 if(ice.dom.trim(endNodeCnt.substr(0,1))!="") {
+						 startIndex = 0;
+					 }
+					 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(startIndex, endNodeCnt.length));
+					 ice.dom.setNodeTextContent(middleNode, rangeTxt);
+					 ice.dom.replaceWith(contentAddNode, startNode);	
+					 ice.dom.insertAfter(startNode, middleNode);
+					 ice.dom.insertAfter(middleNode, endNode);
+				 } else {
+					ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));	
+				 }
+				 
+		});
+		ice.dom.each(ice.dom.find(this.element, italicSel), function (i, el) {
+			 if(ice.dom.trim(el.innerHTML)=="") {
+				ice.dom.replaceWith(el, ice.dom.contents(el));
 			 }
-		 });
+		});	
         return true;		
       }
 		// Webkit likes to insert empty text nodes next to elements. We bold them here.
@@ -672,27 +690,35 @@
 	_addNodeUnderlineTracking: function (contentNode, range, moveLeft, rangeTxt) {
 		var _self = this;
 		var contentAddNode = this.getIceNode(contentNode, 'underlineType');
-		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {		
-		
-			var underlineSel = '.' + this._getIceNodeClass('underlineType');
+		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {	
+			var underlineSel = '.' + this._getIceNodeClass('underlineType');	
 			ice.dom.each(ice.dom.find(this.element, underlineSel), function (i, el) {
-				 var index = contentAddNode.textContent.indexOf(rangeTxt);	
+				 var index = contentAddNode.textContent.indexOf(rangeTxt);				
 				 if(index!=-1){
 					 var startNode = _self.createIceNode('underlineType');
 					 var middleNode = document.createTextNode(rangeTxt);
 					 var endNode = _self.createIceNode('underlineType');
 					 ice.dom.setNodeTextContent(startNode, contentAddNode.textContent.substr(0, index-1));
 					 var endNodeCnt = contentAddNode.textContent.substr(index, contentAddNode.textContent.length).replace(rangeTxt, "");
-					 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(1, endNodeCnt.length));
+					 var startIndex = 1;
+					 if(ice.dom.trim(endNodeCnt.substr(0,1))!="") {
+						 startIndex = 0;
+					 }
+					 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(startIndex, endNodeCnt.length));
 					 ice.dom.setNodeTextContent(middleNode, rangeTxt);
 					 ice.dom.replaceWith(contentAddNode, startNode);	
 					 ice.dom.insertAfter(startNode, middleNode);
 					 ice.dom.insertAfter(middleNode, endNode);
 				 } else {
-					ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));
+					ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));	
 				 }
-			 });
-					
+				 
+			});
+			ice.dom.each(ice.dom.find(this.element, underlineSel), function (i, el) {
+				 if(ice.dom.trim(el.innerHTML)=="") {
+					ice.dom.replaceWith(el, ice.dom.contents(el));
+				 }
+			});		
         return true;		
       }
 	  
