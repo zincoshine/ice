@@ -320,451 +320,96 @@
     },
 	
 	//*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************//
-	insertBold: function (node, range) {	    
-    	var prevent = true;
-    	var browser = ice.dom.browser();
-
-      if (range) {
-        this.selection.addRange(range);
-      } else {
-        range = this.getCurrentRange();
-      }
-		
-      var changeid = this.startBatchChange(this.changeTypes['boldType'].alias);	  
-      if (range.collapsed === false) {
-				  // Bookmark the range and get elements between.
-				  var bookmark = new ice.Bookmark(this.env, range),
-					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
-					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
-					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
-					betweenBlocks = new Array(); 
-					
-				  for (var i = 0; i < elements.length; i++) {
-					  
-					var elem = elements[i];				
-					if (ice.dom.isBlockElement(elem)) {
-					  betweenBlocks.push(elem);
-					  if (!ice.dom.canContainTextElement(elem)) {
-						// Ignore containers that are not supposed to contain text. Check children instead.
-						for (var k = 0; k < elem.childNodes.length; k++) {
-						  elements.push(elem.childNodes[k]);
-						}
-						continue;
-					  }
-					}
-					
-					// Ignore empty space nodes
-					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
-			
-					if (!this._getVoidElement(elem)) {					 
-					  var parentBlock = ice.dom.getBlockParent(elem);
-					// console.log(JSON.parse(JSON.stringify(elem)));					
-					  this._addNodeBoldTracking(elem, false, true, range);					  				  
-					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {						  
-						ice.dom.remove(parentBlock);
-					  }
-					}
-				  }
-			
-				  if (this.mergeBlocks && b1 !== b2) {
-					while (betweenBlocks.length)
-					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
-					ice.dom.removeBRFromChild(b2);
-					ice.dom.removeBRFromChild(b1);
-					ice.dom.mergeContainers(b2, b1);
-				  }
-			
-				  bookmark.selectBookmark();
-			//      range.collapse(false);
-			  range.collapse(true);
-	     
+	insertBold: function (node, range) {	
 	
-      }
-	  
-      this.selection.addRange(range);
-	 
-      this.endBatchChange(changeid);
-      return prevent;
-    
-    },
-
-   //Add tracking CTRL+B
-	_addNodeBoldTracking: function (contentNode, range, moveLeft, rangeTxt) {
-		var _self = this;
-		var contentAddNode = this.getIceNode(contentNode, 'boldType');
-		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {						
-				var boldSel = '.' + this._getIceNodeClass('boldType');
-				var index = contentAddNode.textContent.indexOf(rangeTxt);		
-				ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
-					 var index = contentAddNode.textContent.indexOf(rangeTxt);				
-					 if(index!=-1){
-						 var startNode = _self.createIceNode('boldType');
-						 var middleNode = document.createTextNode(rangeTxt);
-						 var endNode = _self.createIceNode('boldType');
-						 ice.dom.setNodeTextContent(startNode, contentAddNode.textContent.substr(0, index-1));
-						 var endNodeCnt = contentAddNode.textContent.substr(index, contentAddNode.textContent.length).replace(rangeTxt, "");
-						 var startIndex = 1;
-						 if(ice.dom.trim(endNodeCnt.substr(0,1))!="") {
-							 startIndex = 0;
-						 }
-						 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(startIndex, endNodeCnt.length));
-						 ice.dom.setNodeTextContent(middleNode, rangeTxt);
-						 ice.dom.replaceWith(contentAddNode, startNode);	
-						 ice.dom.insertAfter(startNode, middleNode);
-						 ice.dom.insertAfter(middleNode, endNode);
-					 } else {
-						ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));	
-					 }
-					 
-			    });
-				ice.dom.each(ice.dom.find(this.element, boldSel), function (i, el) {
-					 if(ice.dom.trim(el.innerHTML)=="") {
-						ice.dom.replaceWith(el, ice.dom.contents(el));
-					 }
-				});
-          return true;		
-      }
-				
-		// Webkit likes to insert empty text nodes next to elements. We bold them here.
-      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
-        contentNode.parentNode.removeChild(contentNode.previousSibling);
-      }
-      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
-        contentNode.parentNode.removeChild(contentNode.nextSibling);
-      }
-	  
-      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'boldType');
-      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'boldType');
-      var ctNode;
-	  	
-      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {		  
-        ctNode = prevDelNode;
-        ctNode.appendChild(contentNode);
+		this.element.ownerDocument.execCommand("bold", false, null);
 		
-        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
-          var nextDelContents = ice.dom.extractContent(nextDelNode);
-          ice.dom.append(ctNode, nextDelContents);		  
-          nextDelNode.parentNode.removeChild(nextDelNode);
-        }
-      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {		 
-        ctNode = nextDelNode;
-        ctNode.insertBefore(contentNode, ctNode.firstChild);
-      } else {
-		  	
-        ctNode = this.createIceNode('boldType');
-        contentNode.parentNode.insertBefore(ctNode, contentNode);
-		ctNode.appendChild(contentNode);
-      }
-
-      if (range) {
-		 
-        if (ice.dom.isStubElement(contentNode)) {			
-          range.selectNode(contentNode);
-        } else {
-          range.selectNodeContents(contentNode);
-        }
-        if (moveLeft) {
-          range.collapse(true);
-        } else {
-          range.collapse();
-        }
-        contentNode.normalize();
-      }
-      return true;
-	},
+		
+		//var style = this.stylePrefix + '-' + this.getNewStyleId();	
+		/*+" "+style*/	
+		var changeid = this.startBatchChange(this.changeTypes['boldType'].alias);		
+		ice.dom.find(this.element, "b").addClass(this._getIceNodeClass('boldType'))
+									   .attr(this.changeIdAttribute, changeid)
+									   .attr(this.userNameAttribute, this.currentUser.name)
+									   .attr(this.timeAttribute, (new Date()).getTime())
+									   .attr(this.userIdAttribute, this.currentUser.id)
+									   .attr("title",(this.changeTypes['boldType'].action||"Modified")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));
+									   
+		ice.dom.find("strong").removeAttr('class')
+									   .attr(this.changeIdAttribute, changeid)
+									   .attr(this.userNameAttribute, this.currentUser.name)
+									   .attr(this.timeAttribute, (new Date()).getTime())
+									   .attr(this.userIdAttribute, this.currentUser.id)
+									   .attr("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));								   
+									 								   
+				   
+		ice.dom.find(this.element, "span.bold").removeAttr('class')
+											  .attr(this.changeIdAttribute, changeid)
+											  .attr(this.userNameAttribute, this.currentUser.name)
+											  .attr(this.timeAttribute, (new Date()).getTime())
+											  .attr(this.userIdAttribute, this.currentUser.id)
+											  .removeAttr('title')
+											  .attr("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));		
+									   
+	
+    }, 
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************
 
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************//
-	insertItalic: function (node, range) {  	    
-    	var prevent = true;
-    	var browser = ice.dom.browser();
-
-      if (range) {
-        this.selection.addRange(range);
-      } else {
-        range = this.getCurrentRange();
-      }
-
-      var changeid = this.startBatchChange(this.changeTypes['italicType'].alias); 
-      if (range.collapsed === false) {
-				  // Bookmark the range and get elements between.
-				  var bookmark = new ice.Bookmark(this.env, range),
-					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
-					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
-					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
-					betweenBlocks = new Array(); 
-					
-				  for (var i = 0; i < elements.length; i++) {
-					var elem = elements[i];
-					console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(elem))));
-					if (ice.dom.isBlockElement(elem)) {
-					  betweenBlocks.push(elem);
-					  if (!ice.dom.canContainTextElement(elem)) {
-						// Ignore containers that are not supposed to contain text. Check children instead.
-						for (var k = 0; k < elem.childNodes.length; k++) {
-						  elements.push(elem.childNodes[k]);
-						}
-						continue;
-					  }
-					}
-					
-					// Ignore empty space nodes
-					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
-			
-					if (!this._getVoidElement(elem)) { 
-					  var parentBlock = ice.dom.getBlockParent(elem);
-					  this._addNodeItalicTracking(elem, false, true, range);
-					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
-						ice.dom.remove(parentBlock);
-					  }
-					}
-				  }
-			
-				  if (this.mergeBlocks && b1 !== b2) {
-					while (betweenBlocks.length)
-					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
-					ice.dom.removeBRFromChild(b2);
-					ice.dom.removeBRFromChild(b1);
-					ice.dom.mergeContainers(b2, b1);
-				  }
-			
-				  bookmark.selectBookmark();
-			   //range.collapse(false);
-			  range.collapse(true);    
+	insertItalic: function (node, range) {  
 	
-      }
-      this.selection.addRange(range);
-      this.endBatchChange(changeid);
-      return prevent;
+	this.element.ownerDocument.execCommand("italic", false, null);
+	
+	//var style = this.stylePrefix + '-' + this.getNewStyleId();	
+	//+" "+style	
+		var changeid = this.startBatchChange(this.changeTypes['italicType'].alias);		
+		ice.dom.find(this.element, "i").addClass(this._getIceNodeClass('italicType'))
+									   .attr(this.changeIdAttribute, changeid)
+									   .attr(this.userNameAttribute, this.currentUser.name)
+									   .attr(this.timeAttribute, (new Date()).getTime())
+									   .attr(this.userIdAttribute, this.currentUser.id)
+									   .attr("title",(this.changeTypes['italicType'].action||"Modified")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));
+									   
+				   
+		ice.dom.find(this.element, "span.itc").removeAttr('class')
+											  .attr(this.changeIdAttribute, changeid)
+											  .attr(this.userNameAttribute, this.currentUser.name)
+											  .attr(this.timeAttribute, (new Date()).getTime())
+											  .attr(this.userIdAttribute, this.currentUser.id)
+											  .removeAttr('title')
+											  .attr("title",("Unitalicized")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	    
+    	
     
     },
 
-   //Add tracking CTRL+I
-	_addNodeItalicTracking: function (contentNode, range, moveLeft, rangeTxt) {
-		var _self = this;
-		var contentAddNode = this.getIceNode(contentNode, 'italicType');
-		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {		
-		 var italicSel = '.' + this._getIceNodeClass('italicType');
-		 ice.dom.each(ice.dom.find(this.element, italicSel), function (i, el) {
-				 var index = contentAddNode.textContent.indexOf(rangeTxt);				
-				 if(index!=-1){
-					 var startNode = _self.createIceNode('italicType');
-					 var middleNode = document.createTextNode(rangeTxt);
-					 var endNode = _self.createIceNode('italicType');
-					 ice.dom.setNodeTextContent(startNode, contentAddNode.textContent.substr(0, index-1));
-					 var endNodeCnt = contentAddNode.textContent.substr(index, contentAddNode.textContent.length).replace(rangeTxt, "");
-					 var startIndex = 1;
-					 if(ice.dom.trim(endNodeCnt.substr(0,1))!="") {
-						 startIndex = 0;
-					 }
-					 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(startIndex, endNodeCnt.length));
-					 ice.dom.setNodeTextContent(middleNode, rangeTxt);
-					 ice.dom.replaceWith(contentAddNode, startNode);	
-					 ice.dom.insertAfter(startNode, middleNode);
-					 ice.dom.insertAfter(middleNode, endNode);
-				 } else {
-					ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));	
-				 }
-				 
-		});
-		ice.dom.each(ice.dom.find(this.element, italicSel), function (i, el) {
-			 if(ice.dom.trim(el.innerHTML)=="") {
-				ice.dom.replaceWith(el, ice.dom.contents(el));
-			 }
-		});	
-        return true;		
-      }
-		// Webkit likes to insert empty text nodes next to elements. We bold them here.
-      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
-        contentNode.parentNode.removeChild(contentNode.previousSibling);
-      }
-      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
-        contentNode.parentNode.removeChild(contentNode.nextSibling);
-      }
-      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'italicType');
-      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'italicType');
-      var ctNode;
-      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {
-        ctNode = prevDelNode;
-        ctNode.appendChild(contentNode);
-        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
-          var nextDelContents = ice.dom.extractContent(nextDelNode);
-          ice.dom.append(ctNode, nextDelContents);
-          nextDelNode.parentNode.removeChild(nextDelNode);
-        }
-      } else if (contentNode && nextDelNode && this._currentUserIceNode(nextDelNode)) {
-        ctNode = nextDelNode;
-        ctNode.insertBefore(contentNode, ctNode.firstChild);
-      } else {
-        ctNode = this.createIceNode('italicType');
-        contentNode.parentNode.insertBefore(ctNode, contentNode);
-        ctNode.appendChild(contentNode);
-      }
-
-      if (range) {
-        if (ice.dom.isStubElement(contentNode)) {
-          range.selectNode(contentNode);
-        } else {
-          range.selectNodeContents(contentNode);
-        }
-        if (moveLeft) {
-          range.collapse(true);
-        } else {
-          range.collapse();
-        }
-        contentNode.normalize();
-      }
-      return true;
-	},
+ 	
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************
 
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************//
-	insertUnderline: function (node, range) {  	    
-    	var prevent = true;
-    	var browser = ice.dom.browser();
-
-      if (range) {
-        this.selection.addRange(range);
-      } else {
-        range = this.getCurrentRange();
-      }
-
-      var changeid = this.startBatchChange(this.changeTypes['underlineType'].alias);	  
-      if (range.collapsed === false) {		  
-
-				  // Bookmark the range and get elements between.
-				  var bookmark = new ice.Bookmark(this.env, range),
-					elements = ice.dom.getElementsBetween(bookmark.start, bookmark.end),
-					b1 = ice.dom.parents(range.startContainer, this.blockEls.join(', '))[0],
-					b2 = ice.dom.parents(range.endContainer, this.blockEls.join(', '))[0],
-					betweenBlocks = new Array(); 
-					
-				  for (var i = 0; i < elements.length; i++) {
-					  
-					var elem = elements[i];
-					console.log(JSON.parse(JSON.stringify(ice.dom.isBlockElement(elem))));
-					if (ice.dom.isBlockElement(elem)) {
-					  betweenBlocks.push(elem);
-					  if (!ice.dom.canContainTextElement(elem)) {
-						// Ignore containers that are not supposed to contain text. Check children instead.
-						for (var k = 0; k < elem.childNodes.length; k++) {
-						  elements.push(elem.childNodes[k]);
-						}
-						continue;
-					  }
-					}
-					
-					// Ignore empty space nodes
-					if (elem.nodeType === ice.dom.TEXT_NODE && ice.dom.getNodeTextContent(elem).length === 0) continue;
-			
-					if (!this._getVoidElement(elem)) {					 
-					  var parentBlock = ice.dom.getBlockParent(elem);
-					  this._addNodeUnderlineTracking(elem, false, true, range);
-					  if (ice.dom.hasNoTextOrStubContent(parentBlock)) {
-						ice.dom.remove(parentBlock);
-					  }
-					}
-				  }
-			
-				  if (this.mergeBlocks && b1 !== b2) {
-					while (betweenBlocks.length)
-					  ice.dom.mergeContainers(betweenBlocks.shift(), b1);
-					ice.dom.removeBRFromChild(b2);
-					ice.dom.removeBRFromChild(b1);
-					ice.dom.mergeContainers(b2, b1);
-				  }
-			
-				  bookmark.selectBookmark();
-			//      range.collapse(false);
-			  range.collapse(true);    
+	insertUnderline: function (node, range) { 
 	
-      }
-	  
-      this.selection.addRange(range);
-      this.endBatchChange(changeid);
-      return prevent;
-    
+	this.element.ownerDocument.execCommand("underline", false, null);		
+		//var style = this.stylePrefix + '-' + this.getNewStyleId();
+		//+" "+style
+		var changeid = this.startBatchChange(this.changeTypes['underlineType'].alias);		
+		ice.dom.find(this.element, "u").addClass(this._getIceNodeClass('underlineType'))
+									   .attr(this.changeIdAttribute, changeid)
+									   .attr(this.userNameAttribute, this.currentUser.name)
+									   .attr(this.timeAttribute, (new Date()).getTime())
+									   .attr(this.userIdAttribute, this.currentUser.id)
+									   .attr("title",(this.changeTypes['underlineType'].action||"Modified")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));
+									   
+				   
+		ice.dom.find(this.element, "span.uln").removeAttr('class')
+											  .attr(this.changeIdAttribute, changeid)
+											  .attr(this.userNameAttribute, this.currentUser.name)
+											  .attr(this.timeAttribute, (new Date()).getTime())
+											  .attr(this.userIdAttribute, this.currentUser.id)
+											  .removeAttr('title')
+											  .attr("title",("Ununderlined")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));
+		    
     },
-
-   //Add tracking CTRL+U
-	_addNodeUnderlineTracking: function (contentNode, range, moveLeft, rangeTxt) {
-		var _self = this;
-		var contentAddNode = this.getIceNode(contentNode, 'underlineType');
-		if (contentAddNode && this._currentUserIceNode(contentAddNode)) {	
-			var underlineSel = '.' + this._getIceNodeClass('underlineType');	
-			ice.dom.each(ice.dom.find(this.element, underlineSel), function (i, el) {
-				 var index = contentAddNode.textContent.indexOf(rangeTxt);				
-				 if(index!=-1){
-					 var startNode = _self.createIceNode('underlineType');
-					 var middleNode = document.createTextNode(rangeTxt);
-					 var endNode = _self.createIceNode('underlineType');
-					 ice.dom.setNodeTextContent(startNode, contentAddNode.textContent.substr(0, index-1));
-					 var endNodeCnt = contentAddNode.textContent.substr(index, contentAddNode.textContent.length).replace(rangeTxt, "");
-					 var startIndex = 1;
-					 if(ice.dom.trim(endNodeCnt.substr(0,1))!="") {
-						 startIndex = 0;
-					 }
-					 ice.dom.setNodeTextContent(endNode, endNodeCnt.substr(startIndex, endNodeCnt.length));
-					 ice.dom.setNodeTextContent(middleNode, rangeTxt);
-					 ice.dom.replaceWith(contentAddNode, startNode);	
-					 ice.dom.insertAfter(startNode, middleNode);
-					 ice.dom.insertAfter(middleNode, endNode);
-				 } else {
-					ice.dom.replaceWith(contentAddNode, ice.dom.contents(contentAddNode));	
-				 }
-				 
-			});
-			ice.dom.each(ice.dom.find(this.element, underlineSel), function (i, el) {
-				 if(ice.dom.trim(el.innerHTML)=="") {
-					ice.dom.replaceWith(el, ice.dom.contents(el));
-				 }
-			});		
-        return true;		
-      }
-	  
-		// Webkit likes to insert empty text nodes next to elements. We bold them here.
-      if (contentNode.previousSibling && contentNode.previousSibling.nodeType === ice.dom.TEXT_NODE && contentNode.previousSibling.length === 0) {
-        contentNode.parentNode.removeChild(contentNode.previousSibling);
-      }
-      if (contentNode.nextSibling && contentNode.nextSibling.nodeType === ice.dom.TEXT_NODE && contentNode.nextSibling.length === 0) {
-        contentNode.parentNode.removeChild(contentNode.nextSibling);
-      }
-      var prevDelNode = this.getIceNode(contentNode.previousSibling, 'underlineType');
-      var nextDelNode = this.getIceNode(contentNode.nextSibling, 'underlineType');
-      var ctNode;
-
-      if (prevDelNode && this._currentUserIceNode(prevDelNode)) {
-        ctNode = prevDelNode;
-        ctNode.appendChild(contentNode);
-        if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
-          var nextDelContents = ice.dom.extractContent(nextDelNode);
-          ice.dom.append(ctNode, nextDelContents);
-          nextDelNode.parentNode.removeChild(nextDelNode);
-        }
-      } else if (nextDelNode && this._currentUserIceNode(nextDelNode)) {
-        ctNode = nextDelNode;
-        ctNode.insertBefore(contentNode, ctNode.firstChild);
-      } else {
-        ctNode = this.createIceNode('underlineType');
-        contentNode.parentNode.insertBefore(ctNode, contentNode);
-        ctNode.appendChild(contentNode);
-      }
-
-      if (range) {
-        if (ice.dom.isStubElement(contentNode)) {
-          range.selectNode(contentNode);
-        } else {
-          range.selectNodeContents(contentNode);
-        }
-        if (moveLeft) {
-          range.collapse(true);
-        } else {
-          range.collapse();
-        }
-        contentNode.normalize();
-      }
-      return true;
-	},
+  
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************
 
 
