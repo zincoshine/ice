@@ -47,7 +47,7 @@ h1, h3 {
 }
 a.mceButton16 img.mceIcon { width: 16px; height: 16px; padding: 2px;}
 
-.CT-hide .del, .CT-hide .del, .CT-hide .bold, .CT-hide .itc, .CT-hide .uln {
+.CT-hide .del, .CT-hide .del {
 	display: none;
 }
 
@@ -57,6 +57,16 @@ a.mceButton16 img.mceIcon { width: 16px; height: 16px; padding: 2px;}
 	border: none !important; 
 	text-decoration: none;
 }
+
+.CT-hide .bold, .CT-hide .itc, .CT-hide .uln{
+	border-bottom:none;
+}
+
+.CT-hide .unbold, .CT-hide .unitc, .CT-hide .unuln{
+	border-bottom:none;
+}
+
+
 
 .del {
 	text-decoration: line-through;
@@ -68,13 +78,13 @@ a.mceButton16 img.mceIcon { width: 16px; height: 16px; padding: 2px;}
 	border-bottom:2px dashed green;
 }
 .unbold { 
-	border-bottom:2px dashed brown;
+	border-bottom:2px dashed green;
 }
 .itc {
 	border-bottom: 2px dashed green;
 }
 .unitc {
-	border-bottom: 2px dashed purple;
+	border-bottom: 2px dashed green;
 }
 .uln {
 	border-bottom:2px dashed green;

@@ -320,10 +320,27 @@
     },
 	
 	//*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************//
-	insertBold: function (node, range) {	
-	
-		this.element.ownerDocument.execCommand("bold", false, null);
+	insertBold: function (node, range) {
+		//create default span and tracking	
+		var span = this.element.ownerDocument.createElement("span");
+		span.setAttribute("class", "unbold");
+		span.setAttribute(this.changeIdAttribute, changeid);
+		span.setAttribute(this.userNameAttribute, this.currentUser.name);
+		span.setAttribute(this.timeAttribute, (new Date()).getTime());
+		span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
+		span.setAttribute("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
 		
+		if (this.element.ownerDocument.getSelection) {
+			var sel = this.element.ownerDocument.getSelection();
+			if (sel.rangeCount) {
+				var range = sel.getRangeAt(0).cloneRange();
+				range.surroundContents(span);
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}
+		}							  
+		//create default span and tracking	
+		this.element.ownerDocument.execCommand("bold", false, null);		
 		
 		//var style = this.stylePrefix + '-' + this.getNewStyleId();	
 		/*+" "+style*/	
@@ -342,13 +359,32 @@
 											  .attr(this.timeAttribute, (new Date()).getTime())
 											  .attr(this.userIdAttribute, this.currentUser.id)
 											  .removeAttr('title')
-											  .attr("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));								  
+											  .attr("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	  
 	
     }, 
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************
 
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************//
-	insertItalic: function (node, range) {  
+	insertItalic: function (node, range) {
+		
+		var span = this.element.ownerDocument.createElement("span");
+		span.setAttribute("class", "unitc");
+		span.setAttribute(this.changeIdAttribute, changeid);
+		span.setAttribute(this.userNameAttribute, this.currentUser.name);
+		span.setAttribute(this.timeAttribute, (new Date()).getTime());
+		span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
+		span.setAttribute("title",("Unitalicized")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
+		
+		if (this.element.ownerDocument.getSelection) {
+			var sel = this.element.ownerDocument.getSelection();
+			if (sel.rangeCount) {
+				var range = sel.getRangeAt(0).cloneRange();
+				range.surroundContents(span);
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}
+		}				
+		  
 	
 	this.element.ownerDocument.execCommand("italic", false, null);
 	
@@ -380,6 +416,25 @@
 
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************//
 	insertUnderline: function (node, range) { 
+	
+		var span = this.element.ownerDocument.createElement("span");
+		span.setAttribute("class", "unuln");
+		span.setAttribute(this.changeIdAttribute, changeid);
+		span.setAttribute(this.userNameAttribute, this.currentUser.name);
+		span.setAttribute(this.timeAttribute, (new Date()).getTime());
+		span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
+		span.setAttribute("title",("Ununderlined")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
+		
+		if (this.element.ownerDocument.getSelection) {
+			var sel = this.element.ownerDocument.getSelection();
+			if (sel.rangeCount) {
+				var range = sel.getRangeAt(0).cloneRange();
+				range.surroundContents(span);
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}
+		}	
+		
 	
 	this.element.ownerDocument.execCommand("underline", false, null);		
 		//var style = this.stylePrefix + '-' + this.getNewStyleId();
