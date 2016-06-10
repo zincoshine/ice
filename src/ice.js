@@ -333,24 +333,16 @@
 									   .attr(this.userNameAttribute, this.currentUser.name)
 									   .attr(this.timeAttribute, (new Date()).getTime())
 									   .attr(this.userIdAttribute, this.currentUser.id)
-									   .attr("title",(this.changeTypes['boldType'].action||"Modified")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));
-									   
-		ice.dom.find("strong").removeAttr('class')
-									   .attr(this.changeIdAttribute, changeid)
-									   .attr(this.userNameAttribute, this.currentUser.name)
-									   .attr(this.timeAttribute, (new Date()).getTime())
-									   .attr(this.userIdAttribute, this.currentUser.id)
-									   .attr("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));								   
-									 								   
+									   .attr("title",(this.changeTypes['boldType'].action||"Modified")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));								 								   
 				   
 		ice.dom.find(this.element, "span.bold").removeAttr('class')
+											  .addClass("unbold")
 											  .attr(this.changeIdAttribute, changeid)
 											  .attr(this.userNameAttribute, this.currentUser.name)
 											  .attr(this.timeAttribute, (new Date()).getTime())
 											  .attr(this.userIdAttribute, this.currentUser.id)
 											  .removeAttr('title')
-											  .attr("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));		
-									   
+											  .attr("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));								  
 	
     }, 
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************
@@ -372,6 +364,7 @@
 									   
 				   
 		ice.dom.find(this.element, "span.itc").removeAttr('class')
+											  .addClass("unitc")
 											  .attr(this.changeIdAttribute, changeid)
 											  .attr(this.userNameAttribute, this.currentUser.name)
 											  .attr(this.timeAttribute, (new Date()).getTime())
@@ -401,6 +394,7 @@
 									   
 				   
 		ice.dom.find(this.element, "span.uln").removeAttr('class')
+											  .addClass("unuln")
 											  .attr(this.changeIdAttribute, changeid)
 											  .attr(this.userNameAttribute, this.currentUser.name)
 											  .attr(this.timeAttribute, (new Date()).getTime())

@@ -67,10 +67,19 @@ a.mceButton16 img.mceIcon { width: 16px; height: 16px; padding: 2px;}
 .bold { 
 	border-bottom:2px dashed green;
 }
+.unbold { 
+	border-bottom:2px dashed brown;
+}
 .itc {
 	border-bottom: 2px dashed green;
 }
+.unitc {
+	border-bottom: 2px dashed purple;
+}
 .uln {
+	border-bottom:2px dashed green;
+}
+.unuln {
 	border-bottom:2px dashed green;
 }
 
