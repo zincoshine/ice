@@ -322,6 +322,7 @@
 	//*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************//
 	insertBold: function (node, range) {
 		//create default span and tracking	
+		var changeid = this.startBatchChange(this.changeTypes['boldType'].alias);
 		var span = this.element.ownerDocument.createElement("span");
 		span.setAttribute("class", "unbold");
 		span.setAttribute(this.changeIdAttribute, changeid);
@@ -343,8 +344,7 @@
 		this.element.ownerDocument.execCommand("bold", false, null);		
 		
 		//var style = this.stylePrefix + '-' + this.getNewStyleId();	
-		/*+" "+style*/	
-		var changeid = this.startBatchChange(this.changeTypes['boldType'].alias);		
+		/*+" "+style*/					
 		ice.dom.find(this.element, "b").addClass(this._getIceNodeClass('boldType'))
 									   .attr(this.changeIdAttribute, changeid)
 									   .attr(this.userNameAttribute, this.currentUser.name)
@@ -366,7 +366,7 @@
 
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************//
 	insertItalic: function (node, range) {
-		
+		var changeid = this.startBatchChange(this.changeTypes['italicType'].alias);
 		var span = this.element.ownerDocument.createElement("span");
 		span.setAttribute("class", "unitc");
 		span.setAttribute(this.changeIdAttribute, changeid);
@@ -389,8 +389,7 @@
 	this.element.ownerDocument.execCommand("italic", false, null);
 	
 	//var style = this.stylePrefix + '-' + this.getNewStyleId();	
-	//+" "+style	
-		var changeid = this.startBatchChange(this.changeTypes['italicType'].alias);		
+	//+" "+style					
 		ice.dom.find(this.element, "i").addClass(this._getIceNodeClass('italicType'))
 									   .attr(this.changeIdAttribute, changeid)
 									   .attr(this.userNameAttribute, this.currentUser.name)
@@ -417,6 +416,7 @@
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+U CHANGE*******************************//
 	insertUnderline: function (node, range) { 
 	
+		var changeid = this.startBatchChange(this.changeTypes['underlineType'].alias);
 		var span = this.element.ownerDocument.createElement("span");
 		span.setAttribute("class", "unuln");
 		span.setAttribute(this.changeIdAttribute, changeid);
@@ -439,7 +439,7 @@
 	this.element.ownerDocument.execCommand("underline", false, null);		
 		//var style = this.stylePrefix + '-' + this.getNewStyleId();
 		//+" "+style
-		var changeid = this.startBatchChange(this.changeTypes['underlineType'].alias);		
+				
 		ice.dom.find(this.element, "u").addClass(this._getIceNodeClass('underlineType'))
 									   .attr(this.changeIdAttribute, changeid)
 									   .attr(this.userNameAttribute, this.currentUser.name)
