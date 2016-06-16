@@ -322,24 +322,39 @@
 	//*************INNOBLITZ CHANGES FOR TRACKING CTRL+B CHANGE*******************************//
 	insertBold: function (node, range) {
 		//create default span and tracking	
-		var changeid = this.startBatchChange(this.changeTypes['boldType'].alias);
-		var span = this.element.ownerDocument.createElement("span");
-		span.setAttribute("class", "unbold");
-		span.setAttribute(this.changeIdAttribute, changeid);
-		span.setAttribute(this.userNameAttribute, this.currentUser.name);
-		span.setAttribute(this.timeAttribute, (new Date()).getTime());
-		span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
-		span.setAttribute("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
-		
+		var changeid = this.startBatchChange(this.changeTypes['boldType'].alias);		
+		var parentEl = null, sel;
 		if (this.element.ownerDocument.getSelection) {
-			var sel = this.element.ownerDocument.getSelection();
+			sel = this.element.ownerDocument.getSelection();
 			if (sel.rangeCount) {
-				var range = sel.getRangeAt(0).cloneRange();
-				range.surroundContents(span);
-				sel.removeAllRanges();
-				sel.addRange(range);
+				parentEl = sel.getRangeAt(0).commonAncestorContainer;
+				if (parentEl.nodeType != 1) {
+					parentEl = parentEl.parentNode;
+				}
 			}
-		}							  
+		} else if ( (sel = document.selection) && sel.type != "Control") {
+			parentEl = sel.createRange().parentElement();
+		}  
+		var new_parent = parentEl.outerHTML;
+		if(new_parent.indexOf('<strong>')==0 || new_parent.indexOf('<b>')==0){
+			var span = this.element.ownerDocument.createElement("span");
+			span.setAttribute("class", "unbold");
+			span.setAttribute(this.changeIdAttribute, changeid);
+			span.setAttribute(this.userNameAttribute, this.currentUser.name);
+			span.setAttribute(this.timeAttribute, (new Date()).getTime());
+			span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
+			span.setAttribute("title",("Unbolded")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
+			
+			if (this.element.ownerDocument.getSelection) {
+				var sel = this.element.ownerDocument.getSelection();
+				if (sel.rangeCount) {
+					var range = sel.getRangeAt(0).cloneRange();
+					range.surroundContents(span);
+					sel.removeAllRanges();
+					sel.addRange(range);
+				}
+			}
+		}
 		//create default span and tracking	
 		this.element.ownerDocument.execCommand("bold", false, null);		
 		
@@ -367,24 +382,38 @@
 //*************INNOBLITZ CHANGES FOR TRACKING CTRL+I CHANGE*******************************//
 	insertItalic: function (node, range) {
 		var changeid = this.startBatchChange(this.changeTypes['italicType'].alias);
-		var span = this.element.ownerDocument.createElement("span");
-		span.setAttribute("class", "unitc");
-		span.setAttribute(this.changeIdAttribute, changeid);
-		span.setAttribute(this.userNameAttribute, this.currentUser.name);
-		span.setAttribute(this.timeAttribute, (new Date()).getTime());
-		span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
-		span.setAttribute("title",("Unitalicized")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
-		
+		var parentEl = null, sel;
 		if (this.element.ownerDocument.getSelection) {
-			var sel = this.element.ownerDocument.getSelection();
+			sel = this.element.ownerDocument.getSelection();
 			if (sel.rangeCount) {
-				var range = sel.getRangeAt(0).cloneRange();
-				range.surroundContents(span);
-				sel.removeAllRanges();
-				sel.addRange(range);
+				parentEl = sel.getRangeAt(0).commonAncestorContainer;
+				if (parentEl.nodeType != 1) {
+					parentEl = parentEl.parentNode;
+				}
 			}
-		}				
-		  
+		} else if ( (sel = document.selection) && sel.type != "Control") {
+			parentEl = sel.createRange().parentElement();
+		}  
+		var new_parent = parentEl.outerHTML;
+		if(new_parent.indexOf('<i>')==0){
+			var span = this.element.ownerDocument.createElement("span");
+			span.setAttribute("class", "unitc");
+			span.setAttribute(this.changeIdAttribute, changeid);
+			span.setAttribute(this.userNameAttribute, this.currentUser.name);
+			span.setAttribute(this.timeAttribute, (new Date()).getTime());
+			span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
+			span.setAttribute("title",("Unitalicized")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
+			
+			if (this.element.ownerDocument.getSelection) {
+				var sel = this.element.ownerDocument.getSelection();
+				if (sel.rangeCount) {
+					var range = sel.getRangeAt(0).cloneRange();
+					range.surroundContents(span);
+					sel.removeAllRanges();
+					sel.addRange(range);
+				}
+			}				
+		}
 	
 	this.element.ownerDocument.execCommand("italic", false, null);
 	
@@ -417,23 +446,38 @@
 	insertUnderline: function (node, range) { 
 	
 		var changeid = this.startBatchChange(this.changeTypes['underlineType'].alias);
-		var span = this.element.ownerDocument.createElement("span");
-		span.setAttribute("class", "unuln");
-		span.setAttribute(this.changeIdAttribute, changeid);
-		span.setAttribute(this.userNameAttribute, this.currentUser.name);
-		span.setAttribute(this.timeAttribute, (new Date()).getTime());
-		span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
-		span.setAttribute("title",("Ununderlined")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
-		
+		var parentEl = null, sel;
 		if (this.element.ownerDocument.getSelection) {
-			var sel = this.element.ownerDocument.getSelection();
+			sel = this.element.ownerDocument.getSelection();
 			if (sel.rangeCount) {
-				var range = sel.getRangeAt(0).cloneRange();
-				range.surroundContents(span);
-				sel.removeAllRanges();
-				sel.addRange(range);
+				parentEl = sel.getRangeAt(0).commonAncestorContainer;
+				if (parentEl.nodeType != 1) {
+					parentEl = parentEl.parentNode;
+				}
 			}
-		}	
+		} else if ( (sel = document.selection) && sel.type != "Control") {
+			parentEl = sel.createRange().parentElement();
+		}  
+		var new_parent = parentEl.outerHTML;
+		if(new_parent.indexOf('<u>')==0){
+			var span = this.element.ownerDocument.createElement("span");
+			span.setAttribute("class", "unuln");
+			span.setAttribute(this.changeIdAttribute, changeid);
+			span.setAttribute(this.userNameAttribute, this.currentUser.name);
+			span.setAttribute(this.timeAttribute, (new Date()).getTime());
+			span.setAttribute(this.userIdAttribute, this.currentUser.id);											  
+			span.setAttribute("title",("Ununderlined")+" by "+this.currentUser.name+" - "+ice.dom.date("m/d/Y h:ia",parseInt((new Date()).getTime())));	
+			
+			if (this.element.ownerDocument.getSelection) {
+				var sel = this.element.ownerDocument.getSelection();
+				if (sel.rangeCount) {
+					var range = sel.getRangeAt(0).cloneRange();
+					range.surroundContents(span);
+					sel.removeAllRanges();
+					sel.addRange(range);
+				}
+			}
+		}
 		
 	
 	this.element.ownerDocument.execCommand("underline", false, null);		
